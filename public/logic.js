@@ -49,14 +49,15 @@
   /* Totaluri pentru o ofertă (orice tip) */
   L.totals = (o) => {
     const cota = n(o.cotaTva || 21);
+    const fx = (o.moneda === 'RON' && n(o.curs)) ? 1 / n(o.curs) : 1;
     if (o.tip === 'ore') {
       const ore = (o.ore || []).reduce((s, r) => s + n(r.ore), 0);
-      const v = (o.ore || []).reduce((s, r) => s + n(r.ore) * n(r.tarif), 0);
+      const v = (o.ore || []).reduce((s, r) => s + n(r.ore) * n(r.tarif), 0) * fx;
       const tv = o.tva?.arh ? v * (1 + cota / 100) : v;
       return { tip: 'ore', ore, prestator: v, colab: 0, total: v, totalTva: tv, prestatorTva: tv, inv: 0, mp: 0 };
     }
     if (o.tip === 'forfetar') {
-      const v = (o.forfetar || []).reduce((s, r) => s + n(r.cost), 0);
+      const v = (o.forfetar || []).reduce((s, r) => s + n(r.cost), 0) * fx;
       const tv = o.tva?.arh ? v * (1 + cota / 100) : v;
       return { tip: 'forfetar', prestator: v, colab: 0, total: v, totalTva: tv, prestatorTva: tv, inv: 0, mp: 0 };
     }
@@ -275,6 +276,33 @@
       esal, excluseC: excl,
       benSig: String(benNume).toUpperCase(), firmaSig: firmaNume, benScurt: benNume, firmaScurt: o.firma === 'arhideea' ? 'Atelier Arhideea' : 'BIA Oprea Cristian Daniel',
       firmaSigReprez: o.firma === 'arhideea' ? 'prin arh. Cristian Oprea, administrator' : 'arh. Cristian Oprea, titular',
+    };
+  };
+
+  /* ---------- contract-cadru și anexe */
+  L.bani = (v, mon) => mon === 'RON' ? L.fmt(v, 2) + ' lei' : '€ ' + L.fmt(v, 2);
+  L.dataCadru = (c) => {
+    const cd = c.cadru || {};
+    const lines = [c.cnp ? (c.tip === 'PJ' ? 'CUI ' : 'CNP ') + c.cnp + (c.regCom ? '; ' + c.regCom : '') : (c.regCom || ''), c.iban || '', c.adresa || '', c.email || '', c.tel || ''].filter(Boolean);
+    while (lines.length < 5) lines.push('');
+    return { cadruNr: cd.nr || '____', cadruData: cd.data ? L.dataRo(cd.data) : '____', benDen: String(c.nume || '').toUpperCase(), benL1: lines[0], benL2: lines[1], benL3: lines[2], benL4: lines[3], benL5: lines[4], benSig: c.nume || '' };
+  };
+  L.dataAnexa = (o, c) => {
+    const a = o.anexa || {}; const cd = (c && c.cadru) || {}; const mon = o.moneda === 'RON' ? 'RON' : 'EUR';
+    let linii, oreTot = '', tot = 0;
+    if (o.tip === 'forfetar') {
+      linii = (o.forfetar || []).map((r, i) => ({ faza: String(i + 1), den: r.den + (r.desc ? ' – ' + r.desc : ''), ore: '', tarif: '', total: L.bani(r.cost, mon) }));
+      tot = (o.forfetar || []).reduce((s, r) => s + n(r.cost), 0);
+    } else {
+      linii = (o.ore || []).map((r, i) => ({ faza: r.faza || String(i + 1), den: r.den, ore: L.fmt(r.ore), tarif: L.bani(r.tarif, mon), total: L.bani(n(r.ore) * n(r.tarif), mon) }));
+      tot = (o.ore || []).reduce((s, r) => s + n(r.ore) * n(r.tarif), 0);
+      oreTot = L.fmt((o.ore || []).reduce((s, r) => s + n(r.ore), 0));
+    }
+    return {
+      anexaNr: String(a.nr || '01').padStart(2, '0'), anexaData: L.dataRo(a.data), cadruNr: cd.nr || '____', cadruData: cd.data ? L.dataRo(cd.data) : '',
+      obiect: a.obiect || o.obiectiv || '', linii, oreTot, totTxt: L.bani(tot, mon),
+      notaPret: mon === 'RON' ? 'Preturile nu contin TVA.' : 'Plata se va face in lei, la cursul BNR din ziua emiterii facturii. Preturile nu contin TVA.',
+      benSig: (c && c.nume) || o.clientNume || '',
     };
   };
 

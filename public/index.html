@@ -316,7 +316,7 @@ const pill = (s) => `<span class="pill s-${esc(s)}">${esc(s || '—')}</span>`;
 const firmaTag = (f) => `<span class="tag">${f === 'arhideea' ? 'SRL' : 'BIA'}</span>`;
 const tipLbl = { mp: 'pe mp', ore: 'pe ore', forfetar: 'forfetar' };
 function paidFor(filter) { let s = 0; S.payments.forEach((p) => { if (filter(p)) s += L.n(p.sumaEur); }); return s; }
-const dueOffer = (o) => { if (o.contract?.istoric) return 0; const a = L.arhFinal(o); return (o.firma === 'arhideea' && o.tva?.arh) ? a * (1 + L.n(o.cotaTva || 21) / 100) : a; };
+const dueOffer = (o) => { if (o.contract?.istoric) return 0; if (o.anexa && ['respinsă', 'ciornă'].includes(o.status)) return 0; const a = L.arhFinal(o); return (o.firma === 'arhideea' && o.tva?.arh) ? a * (1 + L.n(o.cotaTva || 21) / 100) : a; };
 
 /* ---------------- OFFERS LIST ---------------- */
 function viewOffers() {
@@ -336,7 +336,7 @@ function viewOffers() {
   ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Nr. / dată</th><th>Client</th><th>Obiectiv</th><th>Tip</th><th class="n">Arhitectură ofertat</th><th class="n">Arhitectură final</th><th class="n">Încasat</th><th>Status</th></tr></thead><tbody>
   ${list.map((o) => { const t = L.totals(o); const fin = o.final ? L.arhFinal(o) : null; const paid = paidFor((p) => p.offerId === o.id);
     return `<tr class="click" data-id="${o.id}"><td><span class="num">${esc(o.nr || '—')}</span><div class="sub">${esc(L.dataRo(o.data) || (o.sursa === 'excel' ? 'din Excel' : ''))}</div></td>
-    <td><b>${esc(o.clientNume)}</b><div class="sub">${esc(o.localitate)}</div></td><td>${esc(o.obiectiv)} ${firmaTag(o.firma)}</td><td>${tipLbl[o.tip] || ''}${o.tip === 'mp' ? `<div class="sub num">${L.fmt(t.mp)} mp</div>` : ''}</td>
+    <td><b>${esc(o.clientNume)}</b><div class="sub">${esc(o.localitate)}</div></td><td>${esc(o.obiectiv)} ${firmaTag(o.firma)}${o.anexa ? `<div class="sub">Anexa ${esc(String(o.anexa.nr).padStart(2, '0'))} la contractul-cadru ${esc(S.clients.get(o.clientId)?.cadru?.nr || '')}</div>` : ''}</td><td>${tipLbl[o.tip] || ''}${o.tip === 'mp' ? `<div class="sub num">${L.fmt(t.mp)} mp</div>` : ''}</td>
     <td class="n">${L.eur(t.prestator)}</td><td class="n">${fin != null ? L.eur(fin) : '<span class="sub">—</span>'}</td><td class="n">${paid ? L.eur(paid) : '<span class="sub">—</span>'}</td><td>${pill(o.status)}</td></tr>`; }).join('')}
   </tbody><tfoot><tr><td colspan="4" class="sub">Total arhitectură în listă</td><td class="n"><b>${L.eur(tot)}</b></td><td colspan="3"></td></tr></tfoot></table></div>`
   : `<div class="empty">Nicio ofertă pentru filtrele alese.<br><br><button class="btn primary" onclick="document.getElementById('btnNew').click()">+ Ofertă nouă</button></div>`}`;
@@ -407,7 +407,15 @@ function renderForm() {
   const t = L.totals(d);
   const sumPct = (d.etape || []).reduce((s, e) => s + L.n(e.pct), 0);
   $('#form').innerHTML = `
-  <details class="card" data-k="gen" ${op('gen', true)}><summary>Date generale <span class="sub">${esc(d.nr || '')}</span></summary><div class="bd">
+  ${d.anexa ? `<details class="card" data-k="anx" open><summary>Anexă la contractul-cadru <span class="sub">nr. ${esc(S.clients.get(d.clientId)?.cadru?.nr || '—')}</span></summary><div class="bd">
+    <div class="grid">${field('Nr. anexă', inp('anexa.nr'))}${field('Data anexei', inp('anexa.data', { type: 'date' }))}
+      ${field('Monedă', `<select data-p="moneda" id="i-moneda"><option value="EUR" ${d.moneda !== 'RON' ? 'selected' : ''}>EUR</option><option value="RON" ${d.moneda === 'RON' ? 'selected' : ''}>lei</option></select>`)}
+      ${d.moneda === 'RON' ? field('Curs pentru sold (lei/€)', inp('curs', { num: true, ph: 'ex. 5,09' })) : ''}</div>
+    ${field('Obiectul anexei', inp('anexa.obiect'))}
+    <div class="sub">Tarifele și orele le completezi mai jos, la „Calcul onorariu” (pe ore sau forfetar). Valoarea anexei intră automat în soldul clientului.</div>
+    <div><button class="btn primary" id="dlAnx">Descarcă anexa .docx</button></div>
+  </div></details>` : ''}
+  <details class="card" data-k="gen" ${op('gen', !d.anexa)}><summary>Date generale <span class="sub">${esc(d.nr || '')}</span></summary><div class="bd">
     <div class="grid">
       ${field('Client', inp('clientNume', { list: 'dlClients', ph: 'Nume beneficiar / firmă' }))}
       ${field('Obiectiv', inp('obiectiv', { ph: 'ex. Locuință unifamilială' }))}
@@ -457,9 +465,9 @@ function renderForm() {
 
   <details class="card" data-k="cu" ${op('cu', cuFor(d.id).length > 0)}><summary>Certificat de urbanism și avize <span class="sub" id="cuSum"></span></summary><div class="bd" id="cuBody"></div></details>
 
-  <details class="card" data-k="ctr" ${op('ctr', !!d.contract)}><summary>Contract <span class="sub">${d.contract?.nr ? 'nr. ' + esc(d.contract.nr) + (d.contract.data ? ' / ' + L.dataRo(d.contract.data) : '') : 'netransformată'}</span></summary><div class="bd" id="ctrBody">${contractEditor()}</div></details>
+  ${d.anexa ? '' : `<details class="card" data-k="ctr" ${op('ctr', !!d.contract)}><summary>Contract <span class="sub">${d.contract?.nr ? 'nr. ' + esc(d.contract.nr) + (d.contract.data ? ' / ' + L.dataRo(d.contract.data) : '') : 'netransformată'}</span></summary><div class="bd" id="ctrBody">${contractEditor()}</div></details>`}
 
-  <details class="card" data-k="pl" ${op('pl', !!d.contract)}><summary>Plăți pe această ofertă <span class="sub" id="plSum"></span></summary><div class="bd" id="plBody"></div></details>
+  <details class="card" data-k="pl" ${op('pl', !!d.contract || !!d.anexa)}><summary>Plăți pe această ofertă <span class="sub" id="plSum"></span></summary><div class="bd" id="plBody"></div></details>
 
   <details class="card" data-k="int" ${op('int', !!d.notaExcel)}><summary>Note interne</summary><div class="bd">
     ${field('Note (nu apar în documente)', ta('noteInterne', 3))}
@@ -546,7 +554,7 @@ function bindForm() {
     const el = e.target;
     if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
     if (el.dataset.p === 'firma') { S.draft.tva.arh = el.value === 'arhideea'; renderForm(); renderSummary(); scheduleSave(); }
-    if (el.dataset.p === 'contract.ben.tip') { renderForm(); scheduleSave(); }
+    if (el.dataset.p === 'contract.ben.tip' || el.dataset.p === 'moneda') { renderForm(); renderSummary(); scheduleSave(); }
     if (el.dataset.p === 'status') renderSummary();
   };
   f.onclick = async (e) => {
@@ -564,6 +572,7 @@ function bindForm() {
     if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); renderForm(); scheduleSave(); return; }
     if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
     if (b.id === 'dlCtr') { await downloadContract(); return; }
+    if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
     if (b.id === 'scanGo') { await scanDocs(); return; }
   };
 }
@@ -767,7 +776,8 @@ function viewClient() {
   const c = S.clients.get(S.clientId); if (!c) { go('clienti'); return; }
   const s = clientStats(c);
   const pays = [...S.payments.values()].filter((p) => p.clientId === c.id);
-  const regs = S.registru.filter((r) => { const a = norm(r.beneficiar), b = norm(c.nume).split(' ').filter((w) => w.length > 3); return b.length && b.every((w) => a.includes(w)); });
+  const STOP = new Set(['srl', 's.r.l.', 's.r.l', 'sa', 's.a.', 'sc', 'fam', 'familia']);
+  const regs = S.registru.filter((r) => { const aw = new Set(norm(r.beneficiar).split(/[^a-z0-9]+/)); const b = norm(c.nume).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)); return b.length && b.every((w) => aw.has(w)); });
   const cf = (k, lbl, ph) => field(lbl, `<input data-ck="${k}" value="${esc(c[k] ?? '')}" ${ph ? `placeholder="${ph}"` : ''}>`);
   $('#main').innerHTML = `<div class="ehead"><button class="back" id="bk">← Clienți</button><h2>${esc(c.nume)}</h2><span class="sub">${esc(c.localitate)}</span></div>
   <div class="kpis"><div class="kpi"><div class="lbl">Contractat (arhitectură)</div><div class="val">${L.eur(s.due)}</div></div><div class="kpi ok"><div class="lbl">Încasat</div><div class="val">${L.eur(s.paid)}</div></div><div class="kpi ${s.rest > 0.5 ? 'bad' : ''}"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(s.rest)}</div></div></div>
@@ -776,10 +786,11 @@ function viewClient() {
       ${s.offers.length ? `<div class="tablebox"><table class="list"><tbody>${s.offers.map((o) => `<tr class="click" data-o="${o.id}"><td><b>${esc(o.obiectiv)}</b><div class="sub">${esc(L.dataRo(o.data) || 'din Excel')} · ${tipLbl[o.tip]}${o.contract?.nr ? ' · contract ' + esc(o.contract.nr) : ''}</div></td><td class="n">${L.eur(L.arhFinal(o))}</td><td>${pill(o.status)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sub">Nicio ofertă.</div>'}
       <div><button class="btn small" id="clOff">+ Ofertă pentru acest client</button></div>
     </div></div>
+    ${cadruCard(c)}
     <div class="card"><div class="hd">Plăți</div><div class="bd" id="cpBody">${payRows(pays, true)}${paymentForm('cp', null, c.id)}</div></div>
   </div><div>
     <div class="card"><div class="hd">Date client</div><div class="bd"><div class="grid" id="cForm">
-      ${cf('nume', 'Nume')}${field('Tip', `<select data-ck="tip"><option ${c.tip !== 'PJ' ? 'selected' : ''}>PF</option><option ${c.tip === 'PJ' ? 'selected' : ''}>PJ</option></select>`)}${cf('localitate', 'Localitate')}${cf('adresa', 'Adresă / domiciliu')}${cf('tel', 'Telefon')}${cf('email', 'E-mail')}${cf('cnp', 'CNP / CUI')}${cf('ciSerie', 'CI seria')}${cf('ciNr', 'CI nr.')}
+      ${cf('nume', 'Nume')}${field('Tip', `<select data-ck="tip"><option ${c.tip !== 'PJ' ? 'selected' : ''}>PF</option><option ${c.tip === 'PJ' ? 'selected' : ''}>PJ</option></select>`)}${cf('localitate', 'Localitate')}${cf('adresa', 'Adresă / domiciliu')}${cf('tel', 'Telefon')}${cf('email', 'E-mail')}${cf('cnp', 'CNP / CUI')}${cf('ciSerie', 'CI seria')}${cf('ciNr', 'CI nr.')}${cf('regCom', 'Nr. Reg. Com.')}${cf('iban', 'Cont IBAN')}
     </div>${field('Note', `<textarea data-ck="note" rows="3">${esc(c.note || '')}</textarea>`)}
     <div><button class="btn small danger" id="clDel">Șterge clientul</button></div></div></div>
     ${clientDocsCard(c)}
@@ -791,7 +802,7 @@ function viewClient() {
   let t = null;
   $('#main').oninput = (e) => { const k = e.target.dataset.ck; if (!k) return; c[k] = e.target.value; clearTimeout(t); t = setTimeout(() => { write('clients', c.id, c); if (k === 'nume') { [...S.offers.values()].filter((o) => o.clientId === c.id && o.clientNume !== c.nume).forEach((o) => { o.clientNume = c.nume; write('offers', o.id, o); }); } }, 700); };
   bindPaymentForm('cp', null, c.id, viewClient); bindPayDeletes($('#cpBody'), viewClient);
-  bindClientDocs(c);
+  bindClientDocs(c); bindCadru(c);
   $('#clDel').onclick = (e) => { const b = e.currentTarget; if (s.offers.length) { toast('Clientul are oferte; șterge sau mută întâi ofertele.'); return; } if (b.dataset.sure) { S.clients.delete(c.id); remove('clients', c.id); go('clienti'); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } };
 }
 
@@ -1078,6 +1089,41 @@ function bindClientDocs(c) {
   $$('[data-docdel]').forEach((b) => (b.onclick = () => { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'șterge?'; b.style.fontSize = '12px'; return; } const f = c.docs.splice(+b.dataset.docdel, 1)[0]; write('clients', c.id, c); if (f) api('DELETE', 'files/' + encodeURIComponent(f.key)).catch(() => {}); viewClient(); }));
 }
 
+
+
+/* ---------------- CONTRACT-CADRU ---------------- */
+function cadruCard(c) {
+  const anexe = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa).sort((a, b) => String(a.anexa.nr).localeCompare(String(b.anexa.nr), undefined, { numeric: true }));
+  if (!c.cadru) return `<div class="card"><div class="hd">Contract-cadru</div><div class="bd"><div class="sub">Pentru colaborări cu mai multe comenzi (ca M2 Studio sau DAD Cons): un contract-cadru, apoi câte o anexă pentru fiecare lucrare. Fiecare anexă intră în soldul clientului.</div><div><button class="btn small" id="cdNew">Creează contract-cadru</button></div></div></div>`;
+  const tot = anexe.reduce((s, o) => s + L.totals(o).prestator, 0);
+  const paid = paidFor((p) => anexe.some((o) => o.id === p.offerId));
+  return `<div class="card"><div class="hd">Contract-cadru nr. ${esc(c.cadru.nr || '—')}${c.cadru.data ? ' / ' + esc(L.dataRo(c.cadru.data)) : ''}</div><div class="bd">
+    <div class="grid">${field('Nr. contract-cadru', `<input data-cd="nr" value="${esc(c.cadru.nr || '')}">`)}${field('Data', `<input type="date" data-cd="data" value="${esc(c.cadru.data || '')}">`)}</div>
+    ${anexe.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Anexa</th><th>Obiect</th><th class="n">Valoare</th><th class="n">Încasat</th><th></th></tr></thead><tbody>
+      ${anexe.map((o) => { const v = L.totals(o).prestator; const pd = paidFor((p) => p.offerId === o.id); return `<tr class="click" data-o="${o.id}"><td class="num">${esc(String(o.anexa.nr).padStart(2, '0'))}<div class="sub">${esc(L.dataRo(o.anexa.data))}</div></td><td>${esc(o.anexa.obiect || o.obiectiv)}</td><td class="n">${L.eur(v)}${o.moneda === 'RON' ? '<div class="sub">în lei</div>' : ''}</td><td class="n">${pd ? L.eur(pd) : '—'}</td><td>${pill(o.status)}</td></tr>`; }).join('')}
+      </tbody><tfoot><tr><td colspan="2" class="sub">Total anexe</td><td class="n"><b>${L.eur(tot)}</b></td><td class="n">${L.eur(paid)}</td><td></td></tr></tfoot></table></div>` : '<div class="sub">Nicio anexă încă.</div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small primary" id="anxNew">+ Anexă nouă</button><button class="btn small" id="cdDl">Descarcă contractul-cadru .docx</button></div>
+    <div class="sub">Datele firmei client (CUI, Reg. Com., IBAN, adresă) se iau din „Date client”.</div>
+  </div></div>`;
+}
+function bindCadru(c) {
+  const nb = $('#cdNew'); if (nb) nb.onclick = () => {
+    const s = sett();
+    const prev = [...S.offers.values()].filter((o) => o.clientId === c.id && o.contract?.nr).sort((a, b) => (b.contract.data || '').localeCompare(a.contract.data || ''))[0];
+    if (prev) { c.cadru = { nr: String(prev.contract.nr), data: prev.contract.data || '' }; write('clients', c.id, c); viewClient(); toast('Am folosit contractul existent nr. ' + prev.contract.nr); return; }
+    c.cadru = { nr: String(s.nextContract.arhideea), data: L.ofertaNoua(s).data }; const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, arhideea: s.nextContract.arhideea + 1 }; S.settings = ns; write('settings', 'main', ns); write('clients', c.id, c); viewClient(); };
+  $$('[data-cd]').forEach((el) => (el.onchange = () => { c.cadru[el.dataset.cd] = el.value; write('clients', c.id, c); }));
+  const an = $('#anxNew'); if (an) an.onclick = () => {
+    const ex = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa);
+    const nr = String(ex.reduce((m, o) => Math.max(m, parseInt(o.anexa.nr, 10) || 0), 0) + 1).padStart(2, '0');
+    const o = L.ofertaNoua(sett(), 'ore');
+    Object.assign(o, { clientId: c.id, clientNume: c.nume, localitate: c.localitate || '', firma: 'arhideea', status: 'contractată', obiectiv: 'Anexa ' + nr + ' la contractul-cadru ' + (c.cadru.nr || ''), moneda: 'EUR', curs: 0,
+      anexa: { nr, data: o.data, obiect: 'Proiectare de arhitectură, consultanță și servicii conexe pentru ' }, ore: [{ den: '', ore: 0, tarif: 45 }], etape: [], note: '', excluse: '', estimari: '' });
+    o.tva = { arh: false, rez: false, inst: false };
+    S.offers.set(o.id, o); write('offers', o.id, o); go('oferta', o.id);
+  };
+  const dl = $('#cdDl'); if (dl) dl.onclick = async () => { try { const blob = await renderDocx('cadru', L.dataCadru(c)); await save(fileSafe('Contract cadru ' + (c.cadru.nr || '') + ' ' + c.nume) + '.docx', blob); } catch (e) { toast('Eroare: ' + e.message, 5000); } };
+}
 
 boot();
 })();
