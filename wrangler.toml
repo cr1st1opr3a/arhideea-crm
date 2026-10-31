@@ -14,4 +14,4 @@ id = "489fac71f9d2403192ba404b73230719"
 [vars]
 ALLOWED_EMAILS = "c.d.oprea@gmail.com,cristian.oprea@arhideea.ro"
 ACCESS_TEAM_DOMAIN = "https://curly-sea-5ff5.cloudflareaccess.com"
-# ACCESS_AUD = "<Application Audience tag> (opțional, dar recomandat)"
+ACCESS_AUD = "9b0a23b5f38d2b4552e6e9521833bf74ba1743b3047dc60d25e3e71375ea44c9"
