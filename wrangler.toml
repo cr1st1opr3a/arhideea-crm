@@ -13,5 +13,5 @@ id = "489fac71f9d2403192ba404b73230719"
 
 [vars]
 ALLOWED_EMAILS = "c.d.oprea@gmail.com,cristian.oprea@arhideea.ro"
-# ACCESS_TEAM_DOMAIN = "https://<echipa>.cloudflareaccess.com"
+ACCESS_TEAM_DOMAIN = "https://curly-sea-5ff5.cloudflareaccess.com"
 # ACCESS_AUD = "<Application Audience tag>"
