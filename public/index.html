@@ -316,7 +316,7 @@ const pill = (s) => `<span class="pill s-${esc(s)}">${esc(s || '—')}</span>`;
 const firmaTag = (f) => `<span class="tag">${f === 'arhideea' ? 'SRL' : 'BIA'}</span>`;
 const tipLbl = { mp: 'pe mp', ore: 'pe ore', forfetar: 'forfetar' };
 function paidFor(filter) { let s = 0; S.payments.forEach((p) => { if (filter(p)) s += L.n(p.sumaEur); }); return s; }
-const dueOffer = (o) => { const a = L.arhFinal(o); return (o.firma === 'arhideea' && o.tva?.arh) ? a * (1 + L.n(o.cotaTva || 21) / 100) : a; };
+const dueOffer = (o) => { if (o.contract?.istoric) return 0; const a = L.arhFinal(o); return (o.firma === 'arhideea' && o.tva?.arh) ? a * (1 + L.n(o.cotaTva || 21) / 100) : a; };
 
 /* ---------------- OFFERS LIST ---------------- */
 function viewOffers() {
@@ -508,6 +508,7 @@ function contractEditor() {
   <div class="grid">
     ${field('Nr. contract', `<div style="display:flex;gap:6px">${inp('contract.nr', { ph: 'următorul: ' + sett().nextContract[d.firma] })}<button class="btn small" id="ctrNr" title="Folosește următorul număr">↻</button></div>`)}
     ${field('Data contractului', inp('contract.data', { type: 'date' }))}
+    ${field('Onorariu contractat (EUR, arhitectură)', inp('contract.onorariu', { num: true, ph: L.fmt(L.totals(d).prestator) + ' (din calcul)' }))}
     ${field('Tip beneficiar', `<select data-p="contract.ben.tip" id="i-bentip"><option value="PF" ${b.tip !== 'PJ' ? 'selected' : ''}>Persoană fizică</option><option value="PJ" ${b.tip === 'PJ' ? 'selected' : ''}>Persoană juridică</option></select>`)}
   </div>
   ${b.tip === 'PJ' ? `<div class="grid">
@@ -525,6 +526,8 @@ function contractEditor() {
   </div>
   ${d.tip === 'mp' ? `<div class="grid">${zs.map((z) => field('Regim înălțime – ' + esc(z.den), `<input data-p="contract.regim.${esc(z.den).replace(/\./g, '·')}" value="${esc((c.regim || {})[z.den] ?? '')}" placeholder="ex. P+1E">`)).join('')}</div>
     ${d.final ? `<label class="check"><input type="checkbox" data-c="contract.dinFinal" ${c.dinFinal ? 'checked' : ''}> Folosește suprafețele din calculul final</label>` : ''}` : ''}
+  <label class="check"><input type="checkbox" data-c="contract.istoric" ${c.istoric ? 'checked' : ''}> Contract vechi, încheiat – nu urmări soldul (plățile nu sunt înregistrate aici)</label>
+  ${c.fisier ? `<div class="sub">Preluat din fișierul: <span class="num">${esc(c.fisier)}</span></div>` : ''}
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
 }
 
@@ -752,7 +755,7 @@ function viewClients() {
   const totRest = list.reduce((s, x) => s + Math.max(0, x.s.rest), 0);
   $('#main').innerHTML = `<div class="toolbar"><h2>Clienți <span class="sub">${list.length}</span></h2>
     <input id="clQ" class="btn" style="min-width:220px" placeholder="Filtrează clienții…" value="${esc(S.clQ)}"><button class="btn" id="clNew">+ Client</button></div>
-  <div class="kpis"><div class="kpi"><div class="lbl">Clienți cu contract</div><div class="val">${list.filter((x) => x.s.contracted.length).length}</div></div><div class="kpi bad"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(totRest)}</div></div></div>
+  <div class="kpis"><div class="kpi"><div class="lbl">Clienți cu contract</div><div class="val">${list.filter((x) => x.s.contracted.length).length}</div><div class="sub">${list.filter((x) => x.s.contracted.some((o) => !o.contract?.istoric)).length} cu sold urmărit</div></div><div class="kpi bad"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(totRest)}</div></div></div>
   <div class="tablebox"><table class="list"><thead><tr><th>Client</th><th>Localitate</th><th class="n">Oferte</th><th class="n">Contractat (arh.)</th><th class="n">Încasat</th><th class="n">Rest</th></tr></thead><tbody>
   ${list.map(({ c, s }) => `<tr class="click" data-id="${c.id}"><td><b>${esc(c.nume)}</b>${c.tel ? `<div class="sub">${esc(c.tel)}</div>` : ''}</td><td>${esc(c.localitate)}</td><td class="n">${s.offers.length}</td><td class="n">${s.due ? L.eur(s.due) : '—'}</td><td class="n">${s.paid ? L.eur(s.paid) : '—'}</td><td class="n" style="color:${s.rest > 0.5 ? 'var(--bad)' : 'inherit'}">${s.due || s.paid ? L.eur(s.rest) : '—'}</td></tr>`).join('')}
   </tbody></table></div>`;

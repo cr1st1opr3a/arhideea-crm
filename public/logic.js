@@ -65,6 +65,7 @@
   /* Onorariul de arhitectură care contează după contractare: calculul final dacă există, altfel oferta */
   L.arhFinal = (o) => {
     if (o.tip === 'mp' && o.final && (o.final.zone || []).length) return L.calcZone(o.final.zone, o.tva, o.cotaTva).prestator;
+    if (o.contract && o.contract.onorariu !== undefined && o.contract.onorariu !== '' && o.contract.onorariu !== null && isFinite(parseFloat(o.contract.onorariu))) return n(o.contract.onorariu);
     return L.totals(o).prestator;
   };
   L.esteContractata = (o) => !!(o.contract && o.contract.nr) || ['contractată', 'finalizată', 'în lucru'].includes(o.status);
