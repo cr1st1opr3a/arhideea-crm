@@ -797,12 +797,14 @@ function viewClients() {
   $('#main').innerHTML = `<div class="toolbar"><h2>Clienți <span class="sub">${list.length}</span></h2>
     <input id="clQ" class="btn" style="min-width:220px" placeholder="Filtrează clienții…" value="${esc(S.clQ)}"><button class="btn" id="clNew">+ Client</button></div>
   <div class="kpis"><div class="kpi"><div class="lbl">Clienți cu contract</div><div class="val">${list.filter((x) => x.s.contracted.length).length}</div><div class="sub">${list.filter((x) => x.s.contracted.some((o) => !o.contract?.istoric)).length} cu sold urmărit</div></div><div class="kpi bad"><div class="lbl">De încasat acum</div><div class="val">${L.eur(totNow)}</div><div class="sub">după progresul proiectelor</div></div><div class="kpi"><div class="lbl">Rest contracte în curs</div><div class="val">${L.eur(totRest)}</div></div></div>
+  ${q ? '' : dupCard(findDups())}
   <div class="tablebox"><table class="list"><thead><tr><th>Client</th><th>Localitate</th><th class="n">Oferte</th><th class="n">Contractat (arh.)</th><th class="n">Încasat</th><th class="n">De încasat acum</th><th class="n">Rest contract</th></tr></thead><tbody>
   ${list.map(({ c, s }) => `<tr class="click" data-id="${c.id}"><td><b>${esc(c.nume)}</b>${c.tel ? `<div class="sub">${esc(c.tel)}</div>` : ''}</td><td>${esc(c.localitate)}</td><td class="n">${s.offers.length}</td><td class="n" data-v="${s.due}">${s.due ? L.eur(s.due) : '—'}</td><td class="n" data-v="${s.paid}">${s.paid ? L.eur(s.paid) : '—'}</td><td class="n" data-v="${s.now}" style="color:${s.now > 0.5 ? 'var(--bad)' : 'inherit'}">${s.now ? L.eur(s.now) : '—'}</td><td class="n" data-v="${s.rest}">${s.tracked ? L.eur(s.rest) : '—'}</td></tr>`).join('')}
   </tbody></table></div>`;
   $('#clQ').oninput = (e) => { S.clQ = e.target.value; const pos = e.target.selectionStart; viewClients(); const i = $('#clQ'); i.focus(); i.setSelectionRange(pos, pos); };
   $('#clNew').onclick = () => { const c = { id: L.uid('c_'), nume: 'Client nou', tip: 'PF', localitate: '', adresa: '', tel: '', email: '', note: '', sursa: 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); go('client', c.id); };
   $$('tr.click').forEach((r) => (r.onclick = () => go('client', r.dataset.id)));
+  bindDups($('#main'), () => viewClients());
 }
 function viewClient() {
   const c = S.clients.get(S.clientId); if (!c) { go('clienti'); return; }
@@ -819,6 +821,7 @@ function viewClient() {
       <div><button class="btn small" id="clOff">+ Ofertă pentru acest client</button></div>
     </div></div>
     ${cadruCard(c)}
+    <div id="cDup">${dupCard(findDups(c.id), true)}</div>
     <div class="card"><div class="hd">Plăți</div><div class="bd" id="cpBody">${payRows(pays, true)}${paymentForm('cp', null, c.id)}</div></div>
   </div><div>
     <div class="card"><div class="hd">Date client</div><div class="bd"><div class="grid" id="cForm">
@@ -833,6 +836,7 @@ function viewClient() {
   $('#clOff').onclick = () => { const o = L.ofertaNoua(sett(), 'mp'); o.clientId = c.id; o.clientNume = c.nume; o.localitate = c.localitate; o.nr = L.nrInreg(o.data, seqFor(o.data)); S.offers.set(o.id, o); write('offers', o.id, o); go('oferta', o.id); };
   let t = null;
   $('#main').oninput = (e) => { const k = e.target.dataset.ck; if (!k) return; c[k] = e.target.value; clearTimeout(t); t = setTimeout(() => { write('clients', c.id, c); if (k === 'nume') { [...S.offers.values()].filter((o) => o.clientId === c.id && o.clientNume !== c.nume).forEach((o) => { o.clientNume = c.nume; write('offers', o.id, o); }); } }, 700); };
+  bindDups($('#cDup'), (k) => { if (k) S.clientId = k; if (k && k !== c.id) go('client', k); else viewClient(); });
   bindPaymentForm('cp', null, c.id, viewClient); bindPayDeletes($('#cpBody'), viewClient);
   bindClientDocs(c); bindCadru(c);
   $('#clDel').onclick = (e) => { const b = e.currentTarget; if (s.offers.length) { toast('Clientul are oferte; șterge sau mută întâi ofertele.'); return; } if (b.dataset.sure) { S.clients.delete(c.id); remove('clients', c.id); go('clienti'); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } };
@@ -1157,6 +1161,61 @@ function bindCadru(c) {
   const dl = $('#cdDl'); if (dl) dl.onclick = async () => { try { const blob = await renderDocx('cadru', L.dataCadru(c)); await save(fileSafe('Contract cadru ' + (c.cadru.nr || '') + ' ' + c.nume) + '.docx', blob); } catch (e) { toast('Eroare: ' + e.message, 5000); } };
 }
 
+
+/* ---------------- DUBLURI CLIENȚI ---------------- */
+const DSTOP = new Set(['srl', 'sa', 'sc', 'pfa', 'ii', 'if', 'fam', 'familia', 'dl', 'dna', 'arh', 'ing', 'si', 'de', 'la', 'com', 'impex', 'prod', 'cons', 'trans', 'grup', 'group', 'company', 'construct', 'invest', 'service', 'srl.']);
+const nameToks = (n) => norm(n).replace(/s\.?\s?r\.?\s?l\.?/g, ' ').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !DSTOP.has(w));
+function lev(a, b) { if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+const PRENUME = new Set('adi adrian alex alexandra alexandru alin alina ana andra andreea andrei anca andrea bogdan catalin catalina claudia claudiu cosmin costin cristi cristian cristina dan dana daniel daniela diana dorin dragos elena emil eugen florin gabi gabriel gabriela george georgiana gheorghe horia ioan ioana ion ionel ionut iulia iulian laura lucian madalina marian maria marius mihaela mihai mircea monica nicolae nicu oana octavian ovidiu paul petru radu raluca razvan roxana sebi sebastian sergiu silviu simona sorin stefan teodor tudor valentin vasile victor vlad'.split(' '));
+const tokEq = (x, y) => x === y || (x.length >= 6 && y.length >= 6 && lev(x, y) <= 1);
+function sameClient(a, b) {
+  const digits = (x) => String(x || '').replace(/\D/g, '');
+  if (a.cnp && b.cnp && digits(a.cnp).length >= 6 && digits(a.cnp) === digits(b.cnp)) return 'același CNP/CUI';
+  if (a.tel && b.tel && digits(a.tel).slice(-9).length === 9 && digits(a.tel).slice(-9) === digits(b.tel).slice(-9)) return 'același telefon';
+  if (a.email && b.email && norm(a.email).trim() === norm(b.email).trim()) return 'același e-mail';
+  const ta = nameToks(a.nume || ''), tb = nameToks(b.nume || ''); if (!ta.length || !tb.length) return '';
+  const [sm, lg] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (sm.every((w) => lg.some((v) => tokEq(w, v))) && sm.some((w) => w.length >= 5 && !PRENUME.has(w))) return sm.length === lg.length ? 'nume aproape identic' : 'nume conținut în celălalt';
+  return '';
+}
+const dupKey = (a, b) => [a, b].sort().join('|');
+function findDups(only) {
+  const ign = new Set(sett().dupIgnore || []); const cl = [...S.clients.values()]; const out = [];
+  for (let i = 0; i < cl.length; i++) for (let j = i + 1; j < cl.length; j++) {
+    const a = cl[i], b = cl[j]; if (only && a.id !== only && b.id !== only) continue;
+    if (ign.has(dupKey(a.id, b.id))) continue;
+    const why = sameClient(a, b); if (why) out.push({ a, b, why });
+  }
+  return out;
+}
+function clientWeight(c) { return [...S.offers.values()].filter((o) => o.clientId === c.id).length * 3 + [...S.payments.values()].filter((p) => p.clientId === c.id).length + Object.values(c).filter((v) => v && typeof v === 'string').length / 10; }
+async function mergeClients(keepId, dropId) {
+  const k = S.clients.get(keepId), d = S.clients.get(dropId); if (!k || !d || keepId === dropId) return;
+  for (const [f, v] of Object.entries(d)) { if (['id', 'note', 'docs', 'cadru'].includes(f)) continue; if ((k[f] === undefined || k[f] === '' || k[f] === null) && v !== '' && v != null) k[f] = v; }
+  if (d.note && !String(k.note || '').includes(d.note)) k.note = [k.note, d.note].filter(Boolean).join('\n');
+  if (norm(d.nume).length > norm(k.nume).length && nameToks(k.nume).every((w) => nameToks(d.nume).some((v) => tokEq(w, v)))) k.nume = d.nume; // păstrează numele complet
+  if (d.docs?.length) k.docs = [...(k.docs || []), ...d.docs];
+  if (d.cadru && !k.cadru) k.cadru = d.cadru;
+  const jobs = [write('clients', k.id, k)];
+  S.offers.forEach((o) => { if (o.clientId === dropId || o.clientId === keepId) { if (o.clientId === dropId || o.clientNume !== k.nume) { o.clientId = k.id; o.clientNume = k.nume; jobs.push(write('offers', o.id, o)); } } });
+  S.payments.forEach((p) => { if (p.clientId === dropId) { p.clientId = k.id; jobs.push(write('payments', p.id, p)); } });
+  S.cu.forEach((u) => { if (u.clientId === dropId) { u.clientId = k.id; jobs.push(write('cu', u.id, u)); } });
+  await Promise.all(jobs);
+  S.clients.delete(dropId); await remove('clients', dropId);
+  toast('Clienții au fost uniți în „' + k.nume + '”');
+}
+function ignoreDup(a, b) { const ns = clean(S.settings || {}); ns.dupIgnore = [...new Set([...(ns.dupIgnore || []), dupKey(a, b)])]; S.settings = ns; write('settings', 'main', ns); }
+function dupCard(list, here) {
+  if (!list.length) return '';
+  const rowsH = list.slice(0, 30).map(({ a, b, why }) => { const [x, y] = clientWeight(a) >= clientWeight(b) ? [a, b] : [b, a]; const info = (c) => { const n = [...S.offers.values()].filter((o) => o.clientId === c.id).length; const pn = [...S.payments.values()].filter((p) => p.clientId === c.id).length; return `<a href="#c-${c.id}"><b>${esc(c.nume)}</b></a><div class="sub">${esc([c.localitate, n + ' ofert' + (n === 1 ? 'ă' : 'e'), pn ? pn + ' plăți' : ''].filter(Boolean).join(' · '))}</div>`; };
+    return `<tr><td>${info(x)}</td><td>${info(y)}</td><td class="sub">${esc(why)}</td><td style="white-space:nowrap"><button class="btn small primary" data-merge="${x.id}|${y.id}">Unește</button> <button class="btn small ghost" data-swap="${x.id}|${y.id}" title="Păstrează-l pe al doilea">↔</button> <button class="btn small ghost" data-nodup="${x.id}|${y.id}">Nu e dublură</button></td></tr>`; }).join('');
+  return `<div class="card" style="margin-bottom:14px;border-color:var(--warn,#b7791f)"><div class="hd">${here ? 'Posibilă dublură' : 'Posibile dubluri'} <span class="sub">${list.length}</span></div><div class="bd"><div class="sub" style="margin-bottom:8px">„Unește” mută toate ofertele, contractele, plățile, CU-urile și documentele pe primul client, completează datele lipsă din al doilea și îl șterge pe al doilea. ↔ inversează care rămâne.</div><div class="tablebox"><table class="list"><thead><tr><th>Rămâne</th><th>Se unește în el</th><th>Motiv</th><th></th></tr></thead><tbody>${rowsH}</tbody></table></div></div></div>`;
+}
+function bindDups(root, after) {
+  $$('[data-merge]', root).forEach((b) => (b.onclick = async (e) => { e.stopPropagation(); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sigur? Unește'; return; } const [k, d] = b.dataset.merge.split('|'); b.disabled = true; await mergeClients(k, d); after(k); }));
+  $$('[data-swap]', root).forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [k, d] = b.dataset.swap.split('|'); const m = b.parentNode.querySelector('[data-merge]'); m.dataset.merge = d + '|' + k; delete m.dataset.sure; m.textContent = 'Unește'; const tr = b.closest('tr'); tr.insertBefore(tr.cells[1], tr.cells[0]); b.dataset.swap = d + '|' + k; }));
+  $$('[data-nodup]', root).forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [x, y] = b.dataset.nodup.split('|'); ignoreDup(x, y); after(); }));
+}
 
 /* ---------------- SORTARE TABELE ---------------- */
 function cellVal(td) {
