@@ -53,7 +53,7 @@ export async function onRequest(ctx) {
   const db = env.DB;
   try {
     await ensure(db);
-    if (seg[0] === 'me') return json({ email: ctx.data.user?.email || '' });
+    if (seg[0] === 'me') return json({ email: ctx.data.user?.email || '', aud: ctx.data.user?.aud || '', audPinned: !!env.ACCESS_AUD });
 
     // ---- documents
     if (seg[0] === 'c') {

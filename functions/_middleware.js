@@ -40,11 +40,13 @@ async function verify(token, env) {
   if (!ok) return null;
   const now = Math.floor(Date.now() / 1000);
   const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (!aud.includes(env.ACCESS_AUD)) return null;
+  if (env.ACCESS_AUD && !aud.includes(env.ACCESS_AUD)) return null;
   if (payload.exp && payload.exp < now) return null;
   if (payload.nbf && payload.nbf > now + 60) return null;
   if (payload.iss && payload.iss !== team) return null;
   const allowed = String(env.ALLOWED_EMAILS || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+  // Without an AUD pin, the email allow-list is mandatory.
+  if (!env.ACCESS_AUD && !allowed.length) return null;
   if (allowed.length && !allowed.includes(String(payload.email || '').toLowerCase())) return null;
   return payload;
 }
@@ -53,7 +55,7 @@ const deny = (msg, status = 403) => new Response(msg, { status, headers: { 'cont
 
 export async function onRequest(ctx) {
   const { request, env } = ctx;
-  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return deny('Aplicația nu este încă protejată (lipsesc ACCESS_TEAM_DOMAIN / ACCESS_AUD). Acces blocat.', 503);
+  if (!env.ACCESS_TEAM_DOMAIN || (!env.ACCESS_AUD && !env.ALLOWED_EMAILS)) return deny('Aplicația nu este încă protejată (lipsește configurarea Cloudflare Access). Acces blocat.', 503);
   const cookie = request.headers.get('cookie') || '';
   const m = cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/);
   const token = request.headers.get('cf-access-jwt-assertion') || (m && m[1]);
@@ -61,7 +63,7 @@ export async function onRequest(ctx) {
   let user = null;
   try { user = await verify(token, env); } catch (e) { return deny('Nu am putut verifica autentificarea.', 503); }
   if (!user) return deny('Acces refuzat.');
-  ctx.data.user = { email: user.email };
+  ctx.data.user = { email: user.email, aud: Array.isArray(user.aud) ? user.aud[0] : user.aud };
   const res = await ctx.next();
   const h = new Headers(res.headers);
   h.set('x-frame-options', 'DENY');

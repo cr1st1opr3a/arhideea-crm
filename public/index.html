@@ -264,7 +264,7 @@ const blobToB64 = (b) => new Promise((ok, ko) => { const r = new FileReader(); r
 async function boot() {
   const timer = setTimeout(() => { if (!S.ready) { $('#main').innerHTML = '<div class="empty">Serverul nu răspunde. Verifică legătura la internet și reîncarcă pagina.</div>'; } }, 15000);
   S.db = makeDb();
-  api('GET', 'me').then((m) => ($('#who').textContent = m.email || '')).catch(() => {});
+  api('GET', 'me').then((m) => { $('#who').textContent = m.email || ''; S.me = m; }).catch(() => {});
   S.dl = { save: async ({ filename, data }) => { const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 8000); return { status: 'saved' }; } };
   S.sample = { limits: async () => ({ images: { maxCount: 6 } }), json: async (prompt, opts) => { const inline = []; for (const b of (opts?.images || [])) inline.push({ type: b.type || 'image/jpeg', data: await blobToB64(b) }); return api('POST', 'ai', { prompt, inline }); } };
   let pending = 5;
@@ -829,6 +829,7 @@ function viewSettings() {
       ${field('Firmă implicită', `<select data-sp="firmaImplicita"><option value="bia" ${s.firmaImplicita !== 'arhideea' ? 'selected' : ''}>BIA Oprea Cristian Daniel</option><option value="arhideea" ${s.firmaImplicita === 'arhideea' ? 'selected' : ''}>SC Atelier Arhideea SRL</option></select>`)}
       ${sf('tarifArh', 'Arhitectură €/mp')}${sf('tarifRez', 'Rezistență €/mp')}${sf('tarifInst', 'Instalații €/mp')}${sf('costMp', 'Cost construcție €/mp')}${sf('tarifOrar', 'Tarif orar €')}${sf('semnatura', 'Semnătură ofertă')}
     </div></div></div>
+    ${S.me && !S.me.audPinned ? `<div class="card"><div class="hd">Securitate</div><div class="bd"><div class="sub">Application Audience (AUD) tag al aplicației tale Access (trimite-l lui Claude ca să fie fixat în configurare):</div><div class="note-box" style="user-select:all">${esc(S.me.aud)}</div></div></div>` : ''}
     <div class="card"><div class="hd">Import / export date</div><div class="bd">
       <div class="sub">Importă fișierul JSON exportat din versiunea veche (sau un backup). Documentele existente cu același id sunt actualizate.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="impFile" accept="application/json,.json"><button class="btn small" id="impGo">Importă</button><button class="btn small" id="expGo">Descarcă backup JSON</button><span class="sub" id="impMsg"></span></div>
