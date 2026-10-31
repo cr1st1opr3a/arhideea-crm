@@ -5,11 +5,11 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "arhideea-crm"
-database_id = "PUNE_AICI_D1_ID"
+database_id = "a7278c3e-2a3b-419b-81bf-f0135f297f8c"
 
 [[kv_namespaces]]
 binding = "FILES"
-id = "PUNE_AICI_KV_ID"
+id = "489fac71f9d2403192ba404b73230719"
 
 [vars]
 ALLOWED_EMAILS = "c.d.oprea@gmail.com,cristian.oprea@arhideea.ro"
