@@ -1,0 +1,17 @@
+name = "arhideea-crm"
+compatibility_date = "2025-07-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "arhideea-crm"
+database_id = "PUNE_AICI_D1_ID"
+
+[[kv_namespaces]]
+binding = "FILES"
+id = "PUNE_AICI_KV_ID"
+
+[vars]
+ALLOWED_EMAILS = "c.d.oprea@gmail.com,cristian.oprea@arhideea.ro"
+# ACCESS_TEAM_DOMAIN = "https://<echipa>.cloudflareaccess.com"
+# ACCESS_AUD = "<Application Audience tag>"

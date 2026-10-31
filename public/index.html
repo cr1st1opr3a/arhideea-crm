@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Oferte Arhideea</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1F4E8C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: bară de lucru sus, listă/fișă pe toată lățimea; editorul de ofertă are formular + coloană de calcul lipită în dreapta */
+:root{
+  --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E9EBE8; --ink:#1B1E21; --muted:#646B72; --line:#D6D9D5;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#E2E9F3;
+  --ok:#2C7A4B; --ok-soft:#DDEFE3; --warn:#9A6411; --warn-soft:#F6EBD7; --bad:#B0281F; --bad-soft:#F7DEDB;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14171A; --surface:#1C2024; --sunk:#111416; --ink:#E6E8EA; --muted:#9AA2AA; --line:#2D3338;
+  --accent:#86ACE3; --accent-ink:#0E1A2B; --accent-soft:#1F2D42;
+  --ok:#73C493; --ok-soft:#1C3326; --warn:#E2B460; --warn-soft:#3A2E17; --bad:#F2877D; --bad-soft:#3D1E1B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171A; --surface:#1C2024; --sunk:#111416; --ink:#E6E8EA; --muted:#9AA2AA; --line:#2D3338;
+  --accent:#86ACE3; --accent-ink:#0E1A2B; --accent-soft:#1F2D42;
+  --ok:#73C493; --ok-soft:#1C3326; --warn:#E2B460; --warn-soft:#3A2E17; --bad:#F2877D; --bad-soft:#3D1E1B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+.num,td.n,th.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-head);font-weight:600;margin:0;text-wrap:balance}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1440px;margin:0 auto}
+.bar{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:28px;height:28px;border:2px solid var(--ink);display:grid;place-items:center;font-family:var(--f-num);font-weight:600;font-size:12px;flex:none}
+.brand b{font-family:var(--f-head);font-size:17px;letter-spacing:.01em}
+.brand small{color:var(--muted);font-size:12px;display:block;line-height:1}
+.search{flex:1 1 260px;position:relative;min-width:0}
+.search input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 28px rgba(0,0,0,.14);max-height:60vh;overflow:auto;z-index:40}
+.results .grp{padding:6px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+.results a{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;text-decoration:none;color:inherit;border-top:1px solid var(--line);cursor:pointer}
+.results a:hover,.results a:focus{background:var(--accent-soft);outline:none}
+.results a span:last-child{color:var(--muted);font-size:12px;text-align:right}
+nav.tabs{display:flex;gap:2px;overflow-x:auto}
+nav.tabs button{background:none;border:0;padding:10px 14px;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;white-space:nowrap;font-weight:500}
+nav.tabs button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);cursor:pointer;white-space:nowrap;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:4px 8px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-block:18px 60px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar h2{font-size:22px;margin-right:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:4px 10px;border-radius:99px;font-size:12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table.list{width:100%;border-collapse:collapse;font-size:13px}
+table.list th{text-align:left;font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--line);background:var(--sunk);position:sticky;top:0}
+table.list td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.list tr.click{cursor:pointer}
+table.list tr.click:hover td{background:var(--accent-soft)}
+table.list .n{text-align:right;white-space:nowrap}
+.sub{color:var(--muted);font-size:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.pill.s-trimisă{background:var(--accent-soft);color:var(--accent)}
+.pill.s-acceptată,.pill.s-contractată,.pill.s-în\ lucru{background:var(--ok-soft);color:var(--ok)}
+.pill.s-finalizată{background:var(--ink);color:var(--surface)}
+.pill.s-respinsă{background:var(--bad-soft);color:var(--bad)}
+.pill.s-ciornă{background:var(--warn-soft);color:var(--warn)}
+.tag{font-family:var(--f-num);font-size:11px;color:var(--muted);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.empty{padding:36px 20px;text-align:center;color:var(--muted)}
+/* editor */
+.editor{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+@media (max-width:980px){.editor{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px}
+.card>summary,.card>.hd{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-family:var(--f-head);font-size:16px;font-weight:600}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+.card[open]>summary::before{transform:rotate(45deg)}
+.card>summary .sub{font-family:var(--f-ui);font-weight:400;margin-left:auto}
+.card .bd{padding:4px 16px 16px;display:grid;gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 12px}
+label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+label.f input,label.f select,label.f textarea,.cell input,.cell textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:14px;min-width:0}
+label.f textarea{min-height:90px;resize:vertical;line-height:1.4}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.seg{display:inline-flex;justify-self:start;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:7px 14px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.rows{overflow-x:auto}
+table.ed{border-collapse:collapse;width:100%;min-width:640px}
+table.ed th{font-size:11px;font-weight:500;color:var(--muted);text-align:left;padding:4px 4px 6px;letter-spacing:.04em}
+table.ed td{padding:3px 4px;vertical-align:top}
+table.ed td input,table.ed td textarea{width:100%;padding:6px 7px;border:1px solid var(--line);border-radius:5px;background:var(--bg);min-width:0}
+table.ed td textarea{min-height:34px;resize:vertical;font-size:13px}
+table.ed td.nn input{font-family:var(--f-num);text-align:right}
+table.ed td.calc{font-family:var(--f-num);text-align:right;color:var(--muted);white-space:nowrap;padding-top:9px;font-size:13px}
+.x{border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;font-size:16px;line-height:1}
+.x:hover{color:var(--bad)}
+.check{display:flex;align-items:center;gap:8px;font-size:13px}
+.note-box{background:var(--sunk);border-radius:5px;padding:10px 12px;font-family:var(--f-num);font-size:12px;white-space:pre-wrap;max-height:260px;overflow:auto;color:var(--muted)}
+aside.sum{position:sticky;top:calc(env(safe-area-inset-top,0px) + 112px);display:grid;gap:12px}
+@media (max-width:980px){aside.sum{position:static}}
+.sumcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.sumcard h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-ui);font-weight:500;margin-bottom:8px}
+.big{font-family:var(--f-num);font-size:28px;font-weight:600;letter-spacing:-.01em}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13px}
+.kv span:nth-child(even){font-family:var(--f-num);text-align:right;white-space:nowrap}
+.kv .tot{font-weight:600;border-top:1px solid var(--line);padding-top:5px}
+.kv .mut{color:var(--muted)}
+.actions{display:grid;gap:8px}
+.saved{font-size:12px;color:var(--muted)}
+.back{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-weight:500}
+.ehead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px}
+.ehead h2{font-size:24px}
+.warnline{font-size:12px;color:var(--warn)}
+.badline{font-size:12px;color:var(--bad)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:var(--r);z-index:60;font-size:13px;max-width:calc(100% - 32px)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:820px){.split{grid-template-columns:minmax(0,1fr)}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kpi .val{font-family:var(--f-num);font-size:22px;font-weight:600;margin-top:2px}
+.kpi.bad .val{color:var(--bad)} .kpi.ok .val{color:var(--ok)}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+.scanbox{border:1px dashed var(--line);border-radius:var(--r);padding:12px;display:grid;gap:8px;background:var(--bg)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+.prog{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;min-width:80px}
+.prog>i{display:block;height:100%;background:var(--ok)}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+.alert:first-child{border-top:0}
+.alert:hover{background:var(--accent-soft)}
+.alert .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
+.alert.bad .dot{background:var(--bad)} .alert.warn .dot{background:var(--warn)} .alert.ok .dot{background:var(--ok)}
+.alert b{font-weight:600}
+.badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;font-weight:600;margin-left:6px}
+.days{font-family:var(--f-num);font-size:12px;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap}
+.days.bad{background:var(--bad-soft);color:var(--bad)} .days.warn{background:var(--warn-soft);color:var(--warn)} .days.ok{background:var(--ok-soft);color:var(--ok)}
+.cubox{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:10px;background:var(--bg)}
+.cuhd{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cuhd b{font-family:var(--f-head);font-size:15px}
+table.ed td.chk{width:34px;text-align:center;padding-top:9px}
+table.ed td.chk input{width:18px;height:18px}
+tr.done td input:not([type=checkbox]){color:var(--muted)}
+.userbox{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.userbox a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap bar">
+    <div class="brand"><div class="mark">AA</div><div><b>Oferte &amp; clienți</b><small>Atelier Arhideea · BIA Oprea</small></div></div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Caută client, localitate, obiectiv, nr. ofertă…" autocomplete="off">
+      <div class="results" id="results" hidden></div>
+    </div>
+    <button class="btn primary" id="btnNew">+ Ofertă nouă</button>
+    <button class="btn" id="btnExport" title="Descarcă toate datele într-un fișier Excel">Backup Excel</button>
+    <div class="userbox"><span id="who"></span><a href="/cdn-cgi/access/logout">Ieșire</a></div>
+  </div>
+  <div class="wrap"><nav class="tabs" id="tabs">
+    <button data-v="panou">Panou<span id="alertBadge"></span></button><button data-v="oferte">Oferte</button><button data-v="cu">CU &amp; avize</button><button data-v="clienti">Clienți</button><button data-v="plati">Plăți</button><button data-v="registru">Registru proiecte</button><button data-v="setari">Setări</button>
+  </nav></div>
+</header>
+<main class="wrap" id="main"><div class="loading">Se încarcă baza de date…</div></main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.47.4/build/docxtemplater.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/logic.js"></script>
+<script>
+(() => {
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const STATUSES = ['ciornă', 'trimisă', 'acceptată', 'respinsă', 'contractată', 'în lucru', 'finalizată', 'arhivă'];
+const S = {
+  db: null, dl: null, sample: null, ready: false,
+  offers: new Map(), clients: new Map(), payments: new Map(), cu: new Map(), registru: [], settings: {},
+  view: 'panou', curId: null, draft: null, clientId: null,
+  f: { status: 'toate', tip: 'toate', an: 'toți', sort: 'data' }, regQ: '', clQ: '',
+};
+const DEF_SETTINGS = {
+  semnatura: 'Arh. Cristian Oprea', firmaImplicita: 'bia', tarifArh: 25, tarifRez: 7, tarifInst: 4, costMp: 1200, tarifOrar: 40,
+  nextContract: { arhideea: 237, bia: 17 },
+  firme: { arhideea: { nume: 'SC ATELIER ARHIDEEA SRL' }, bia: { nume: 'BIA Oprea Cristian Daniel', sediu: '', cif: '', iban: '', banca: '' } },
+};
+const sett = () => ({ ...DEF_SETTINGS, ...S.settings, firme: { ...DEF_SETTINGS.firme, ...(S.settings.firme || {}) }, nextContract: { ...DEF_SETTINGS.nextContract, ...(S.settings.nextContract || {}) } });
+const clean = (o) => JSON.parse(JSON.stringify(o));
+
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), ms); }
+
+/* ---------------- DB ---------------- */
+const queues = {};
+function write(col, id, data) {
+  const key = col + '/' + id;
+  const run = async () => { if (!S.db) throw new Error('fără bază de date'); await S.db.collection(col).doc(id).set(clean(data)); };
+  queues[key] = (queues[key] || Promise.resolve()).then(run, run);
+  return queues[key].catch((e) => { toast('Nu am putut salva: ' + (e.message || e.code)); throw e; });
+}
+function remove(col, id) { return S.db.collection(col).doc(id).delete().catch((e) => toast('Nu am putut șterge: ' + (e.message || e.code))); }
+
+/* ---- server API (Cloudflare Pages Functions + D1 + KV) ---- */
+async function api(method, path, body, isForm) {
+  const opt = { method, headers: { 'x-crm': '1' }, credentials: 'same-origin' };
+  if (body !== undefined) { if (isForm) opt.body = body; else { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); } }
+  const r = await fetch('/api/' + path, opt);
+  if (r.status === 401 || (r.status === 403 && method === 'GET' && path === 'me')) { location.reload(); throw new Error('Sesiunea a expirat'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+  return j;
+}
+function makeDb() {
+  const L1 = {}, L2 = {};
+  const snapOf = (list) => ({ docs: list.map((d) => { const { id, ...x } = d; return { id, exists: true, data: () => x }; }) });
+  async function refreshCol(col) { const list = await api('GET', 'c/' + col); (L1[col] || []).forEach((l) => l.next(snapOf(list))); }
+  async function refreshDoc(path) { let d = null; try { d = await api('GET', 'c/' + path); } catch (e) { if (e.status !== 404) throw e; } const { id, ...x } = d || {}; (L2[path] || []).forEach((l) => l.next({ exists: !!d, data: () => x })); }
+  const doc = (path) => {
+    const [col, id] = path.split('/'); const p = 'c/' + col + '/' + encodeURIComponent(id);
+    return {
+      set: (d) => api('PUT', p, d), delete: () => api('DELETE', p),
+      onSnapshot(next, error) { (L2[path] = L2[path] || []).push({ next, error }); refreshDoc(path).catch((e) => error && error(e)); return () => {}; },
+    };
+  };
+  const collection = (col) => ({
+    limit() { return this; }, doc: (id) => doc(col + '/' + id),
+    get: async () => snapOf(await api('GET', 'c/' + col)),
+    onSnapshot(next, error) { (L1[col] = L1[col] || []).push({ next, error }); refreshCol(col).catch((e) => error && error(e)); return () => {}; },
+  });
+  const refreshAll = () => { Object.keys(L1).forEach((c) => refreshCol(c).catch(() => {})); Object.keys(L2).forEach((p) => refreshDoc(p).catch(() => {})); };
+  return { collection, doc, refreshAll };
+}
+const busy = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+setInterval(() => { if (S.ready && !busy() && document.visibilityState === 'visible') S.db.refreshAll(); }, 120000);
+document.addEventListener('visibilitychange', () => { if (S.ready && document.visibilityState === 'visible' && !busy()) S.db.refreshAll(); });
+const blobToB64 = (b) => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = ko; r.readAsDataURL(b); });
+
+async function boot() {
+  const timer = setTimeout(() => { if (!S.ready) { $('#main').innerHTML = '<div class="empty">Serverul nu răspunde. Verifică legătura la internet și reîncarcă pagina.</div>'; } }, 15000);
+  S.db = makeDb();
+  api('GET', 'me').then((m) => ($('#who').textContent = m.email || '')).catch(() => {});
+  S.dl = { save: async ({ filename, data }) => { const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 8000); return { status: 'saved' }; } };
+  S.sample = { limits: async () => ({ images: { maxCount: 6 } }), json: async (prompt, opts) => { const inline = []; for (const b of (opts?.images || [])) inline.push({ type: b.type || 'image/jpeg', data: await blobToB64(b) }); return api('POST', 'ai', { prompt, inline }); } };
+  let pending = 5;
+  const done = () => { if (--pending <= 0 && !S.ready) { S.ready = true; clearTimeout(timer); route(); } };
+  const sub = (col, map) => S.db.collection(col).limit(1000).onSnapshot((snap) => {
+    map.clear(); snap.docs.forEach((d) => map.set(d.id, { ...d.data(), id: d.id }));
+    if (S.ready) onData(col); else done();
+  }, (e) => { toast('Eroare la citire: ' + e.message); done(); });
+  sub('offers', S.offers); sub('clients', S.clients); sub('payments', S.payments); sub('cu', S.cu);
+  S.db.doc('settings/main').onSnapshot((d) => { S.settings = d.exists ? d.data() : {}; if (S.ready) onData('settings'); else done(); }, () => done());
+  S.db.collection('registru').limit(1000).get().then((snap) => { S.registru = snap.docs.map((d) => ({ ...d.data(), id: d.id })); if (S.view === 'registru') render(); }).catch(() => {});
+}
+function onData(col) {
+  updateBadge();
+  if (S.view === 'oferta') { if (col === 'payments') renderOfferPayments(); if (col === 'cu' && !busy()) renderCuCard(); return; }
+  if (busy()) return;
+  render();
+}
+
+/* ---------------- routing ---------------- */
+function go(view, id) {
+  if (S.view === 'oferta' && S.draft) flushSave();
+  S.view = view;
+  if (view === 'oferta') S.curId = id; if (view === 'client') S.clientId = id;
+  try { location.hash = view === 'oferta' ? 'o-' + id : view === 'client' ? 'c-' + id : view; } catch (e) {}
+  route();
+}
+function route() {
+  const h = (location.hash || '').slice(1);
+  if (h.startsWith('o-') && S.offers.has(h.slice(2))) { S.view = 'oferta'; S.curId = h.slice(2); }
+  else if (h.startsWith('c-') && S.clients.has(h.slice(2))) { S.view = 'client'; S.clientId = h.slice(2); }
+  else if (['panou', 'oferte', 'cu', 'clienti', 'plati', 'registru', 'setari'].includes(h)) S.view = h;
+  render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', () => { if (S.ready) route(); });
+
+function render() {
+  if (!S.ready) return;
+  const tab = S.view === 'oferta' ? 'oferte' : S.view === 'client' ? 'clienti' : S.view;
+  $$('#tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.v === tab ? 'true' : 'false'));
+  updateBadge();
+  ({ panou: viewDashboard, cu: viewCuList, oferte: viewOffers, clienti: viewClients, client: viewClient, plati: viewPayments, registru: viewRegistry, setari: viewSettings, oferta: viewEditor })[S.view]();
+}
+$('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });
+
+/* ---------------- helpers ---------------- */
+const yearOf = (o) => (o.data || '').slice(0, 4);
+const pill = (s) => `<span class="pill s-${esc(s)}">${esc(s || '—')}</span>`;
+const firmaTag = (f) => `<span class="tag">${f === 'arhideea' ? 'SRL' : 'BIA'}</span>`;
+const tipLbl = { mp: 'pe mp', ore: 'pe ore', forfetar: 'forfetar' };
+function paidFor(filter) { let s = 0; S.payments.forEach((p) => { if (filter(p)) s += L.n(p.sumaEur); }); return s; }
+const dueOffer = (o) => { const a = L.arhFinal(o); return (o.firma === 'arhideea' && o.tva?.arh) ? a * (1 + L.n(o.cotaTva || 21) / 100) : a; };
+
+/* ---------------- OFFERS LIST ---------------- */
+function viewOffers() {
+  const all = [...S.offers.values()];
+  const years = [...new Set(all.map(yearOf).filter(Boolean))].sort().reverse();
+  let list = all.filter((o) => (S.f.status === 'toate' || o.status === S.f.status) && (S.f.tip === 'toate' || o.tip === S.f.tip) && (S.f.an === 'toți' || yearOf(o) === S.f.an));
+  list.sort((a, b) => S.f.sort === 'client' ? norm(a.clientNume).localeCompare(norm(b.clientNume)) : (b.data || '0').localeCompare(a.data || '0') || (a.ordineExcel || 0) - (b.ordineExcel || 0));
+  const cnt = (s) => all.filter((o) => o.status === s).length;
+  const tot = list.reduce((s, o) => s + L.totals(o).prestator, 0);
+  $('#main').innerHTML = `
+  <div class="toolbar"><h2>Oferte <span class="sub">${list.length} din ${all.length}</span></h2>
+    <select id="fTip" class="btn"><option value="toate">Toate tipurile</option><option value="mp">pe mp</option><option value="ore">pe ore</option><option value="forfetar">forfetar</option></select>
+    <select id="fAn" class="btn"><option value="toți">Toți anii</option>${years.map((y) => `<option>${y}</option>`).join('')}<option value="">fără dată</option></select>
+    <select id="fSort" class="btn"><option value="data">Cele mai noi</option><option value="client">După client</option></select>
+  </div>
+  <div class="chips" style="margin-bottom:12px">${['toate', ...STATUSES].map((s) => `<button class="chip" data-s="${s}" aria-pressed="${S.f.status === s}">${s}${s !== 'toate' ? ' · ' + cnt(s) : ''}</button>`).join('')}</div>
+  ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Nr. / dată</th><th>Client</th><th>Obiectiv</th><th>Tip</th><th class="n">Arhitectură ofertat</th><th class="n">Arhitectură final</th><th class="n">Încasat</th><th>Status</th></tr></thead><tbody>
+  ${list.map((o) => { const t = L.totals(o); const fin = o.final ? L.arhFinal(o) : null; const paid = paidFor((p) => p.offerId === o.id);
+    return `<tr class="click" data-id="${o.id}"><td><span class="num">${esc(o.nr || '—')}</span><div class="sub">${esc(L.dataRo(o.data) || (o.sursa === 'excel' ? 'din Excel' : ''))}</div></td>
+    <td><b>${esc(o.clientNume)}</b><div class="sub">${esc(o.localitate)}</div></td><td>${esc(o.obiectiv)} ${firmaTag(o.firma)}</td><td>${tipLbl[o.tip] || ''}${o.tip === 'mp' ? `<div class="sub num">${L.fmt(t.mp)} mp</div>` : ''}</td>
+    <td class="n">${L.eur(t.prestator)}</td><td class="n">${fin != null ? L.eur(fin) : '<span class="sub">—</span>'}</td><td class="n">${paid ? L.eur(paid) : '<span class="sub">—</span>'}</td><td>${pill(o.status)}</td></tr>`; }).join('')}
+  </tbody><tfoot><tr><td colspan="4" class="sub">Total arhitectură în listă</td><td class="n"><b>${L.eur(tot)}</b></td><td colspan="3"></td></tr></tfoot></table></div>`
+  : `<div class="empty">Nicio ofertă pentru filtrele alese.<br><br><button class="btn primary" onclick="document.getElementById('btnNew').click()">+ Ofertă nouă</button></div>`}`;
+  $('#fTip').value = S.f.tip; $('#fAn').value = S.f.an; $('#fSort').value = S.f.sort;
+  $('#fTip').onchange = (e) => { S.f.tip = e.target.value; viewOffers(); };
+  $('#fAn').onchange = (e) => { S.f.an = e.target.value; viewOffers(); };
+  $('#fSort').onchange = (e) => { S.f.sort = e.target.value; viewOffers(); };
+  $$('.chip[data-s]').forEach((c) => (c.onclick = () => { S.f.status = c.dataset.s; viewOffers(); }));
+  $$('tr.click').forEach((r) => (r.onclick = () => go('oferta', r.dataset.id)));
+}
+
+function newOffer(tip, base) {
+  const o = base ? { ...clean(base), id: L.uid('o_'), status: 'ciornă', contract: null, final: null, sursa: 'app', excelSheet: '', notaExcel: '', createdAt: Date.now() } : L.ofertaNoua(sett(), tip);
+  const today = L.ofertaNoua(sett()).data;
+  o.data = today; o.nr = L.nrInreg(today, seqFor(today));
+  S.offers.set(o.id, o); write('offers', o.id, o); go('oferta', o.id);
+}
+function seqFor(iso, exceptId) { let k = 0; S.offers.forEach((o) => { if (o.data === iso && o.id !== exceptId && o.nr) k++; }); return k + 1; }
+$('#btnNew').onclick = () => newOffer('mp');
+
+/* ---------------- EDITOR ---------------- */
+let saveT = null;
+function scheduleSave() { $('#saved') && ($('#saved').textContent = 'Modificări nesalvate…'); clearTimeout(saveT); saveT = setTimeout(flushSave, 900); }
+function flushSave() {
+  clearTimeout(saveT); const d = S.draft; if (!d) return;
+  d.updatedAt = Date.now();
+  // client: leagă sau creează
+  if (d.clientNume) {
+    let c = d.clientId && S.clients.get(d.clientId);
+    if (!c || norm(c.nume) !== norm(d.clientNume)) {
+      c = [...S.clients.values()].find((x) => norm(x.nume) === norm(d.clientNume));
+      if (!c) { c = { id: L.uid('c_'), nume: d.clientNume, tip: 'PF', localitate: d.localitate || '', adresa: '', tel: '', email: '', note: '', sursa: 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); }
+      d.clientId = c.id;
+    }
+  }
+  S.offers.set(d.id, clean(d));
+  write('offers', d.id, d).then(() => { const el = $('#saved'); if (el && S.draft === d) el.textContent = 'Salvat ' + new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }); });
+}
+function setPath(obj, path, val) { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach((k) => { if (o[k] == null) o[k] = /^\d+$/.test(k) ? [] : {}; o = o[k]; }); o[ks.at(-1)] = val; }
+function getPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+
+const inp = (path, opts = {}) => { const v = getPath(S.draft, path); return `<input data-p="${path}" ${opts.num ? 'data-num="1" inputmode="decimal"' : ''} value="${esc(v ?? '')}" ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ''} ${opts.list ? `list="${opts.list}"` : ''} ${opts.type ? `type="${opts.type}"` : ''} id="i-${path.replace(/\./g, '-')}">`; };
+const ta = (path, rows = 4) => `<textarea data-p="${path}" rows="${rows}" id="i-${path.replace(/\./g, '-')}">${esc(getPath(S.draft, path) ?? '')}</textarea>`;
+const field = (label, html) => `<label class="f">${label}${html}</label>`;
+
+function viewEditor() {
+  const src = S.offers.get(S.curId);
+  if (!src) { go('oferte'); return; }
+  S.draft = clean(src);
+  const d = S.draft;
+  d.tva = d.tva || { arh: false, rez: true, inst: true };
+  if (d.note == null && d.excluse == null) { const n0 = L.ofertaNoua(sett(), d.tip); d.note = n0.note; d.excluse = n0.excluse; d.plata = n0.plata; d.estimari = d.estimari || ''; }
+  if (d.tip === 'mp') (d.etape || []).forEach((e) => { const k = L.DEF.etapeMp.find((x) => norm(x.den).slice(0, 12) === norm(e.den).slice(0, 12)); if (k) { if (!e.desc) e.desc = k.desc; if (!e.cond) e.cond = k.cond; if (!e.durata) e.durata = k.durata; } });
+  $('#main').innerHTML = `
+  <div class="ehead"><button class="back" id="bk">← Oferte</button><h2 id="ttl"></h2><span class="saved" id="saved">${d.sursa === 'excel' ? 'Importată din Excel' : ''}</span></div>
+  <div class="editor"><div id="form"></div><aside class="sum" id="sum"></aside></div>
+  <datalist id="dlClients">${[...S.clients.values()].map((c) => `<option value="${esc(c.nume)}">`).join('')}</datalist>
+  <datalist id="dlLoc">${[...new Set([...S.offers.values()].map((o) => o.localitate).filter(Boolean))].map((l) => `<option value="${esc(l)}">`).join('')}</datalist>`;
+  $('#bk').onclick = () => go('oferte');
+  renderForm(); renderSummary();
+}
+function title() { const d = S.draft; $('#ttl').textContent = (d.clientNume || 'Ofertă nouă') + (d.localitate ? ' · ' + d.localitate : ''); }
+
+function renderForm() {
+  const d = S.draft;
+  const openState = {}; $$('#form details').forEach((x) => (openState[x.dataset.k] = x.open));
+  const op = (k, def) => (openState[k] ?? def) ? 'open' : '';
+  const t = L.totals(d);
+  const sumPct = (d.etape || []).reduce((s, e) => s + L.n(e.pct), 0);
+  $('#form').innerHTML = `
+  <details class="card" data-k="gen" ${op('gen', true)}><summary>Date generale <span class="sub">${esc(d.nr || '')}</span></summary><div class="bd">
+    <div class="grid">
+      ${field('Client', inp('clientNume', { list: 'dlClients', ph: 'Nume beneficiar / firmă' }))}
+      ${field('Obiectiv', inp('obiectiv', { ph: 'ex. Locuință unifamilială' }))}
+      ${field('Localitate', inp('localitate', { list: 'dlLoc' }))}
+      ${field('Adresă / zonă', inp('adresa', { ph: 'stradă, nr., cartier' }))}
+    </div>
+    <div class="grid">
+      ${field('Dată ofertă', inp('data', { type: 'date' }))}
+      ${field('Nr. înregistrare', `<div style="display:flex;gap:6px">${inp('nr')}<button class="btn small" id="reNr" title="Recalculează din dată">↻</button></div>`)}
+      ${field('Status', `<select data-p="status" id="i-status">${STATUSES.map((s) => `<option ${d.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
+      ${field('Firmă', `<select data-p="firma" id="i-firma"><option value="bia" ${d.firma !== 'arhideea' ? 'selected' : ''}>BIA Oprea Cristian Daniel (fără TVA arh.)</option><option value="arhideea" ${d.firma === 'arhideea' ? 'selected' : ''}>SC Atelier Arhideea SRL (TVA 21%)</option></select>`)}
+    </div>
+  </div></details>
+
+  <details class="card" data-k="calc" ${op('calc', true)}><summary>Calcul onorariu <span class="sub">${tipLbl[d.tip]}</span></summary><div class="bd">
+    <div class="seg" role="group" aria-label="Tip ofertă">${['mp', 'ore', 'forfetar'].map((x) => `<button data-tip="${x}" aria-pressed="${d.tip === x}">${tipLbl[x]}</button>`).join('')}</div>
+    ${d.tip === 'mp' ? zonesEditor('zone', true) : d.tip === 'ore' ? oreEditor() : forfEditor()}
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <label class="check"><input type="checkbox" data-c="tva.arh" ${d.tva.arh ? 'checked' : ''}> TVA la arhitectură</label>
+      ${d.tip === 'mp' ? `<label class="check"><input type="checkbox" data-c="tva.rez" ${d.tva.rez ? 'checked' : ''}> TVA la rezistență</label><label class="check"><input type="checkbox" data-c="tva.inst" ${d.tva.inst ? 'checked' : ''}> TVA la instalații</label>` : ''}
+      <label class="check">Cota TVA <input data-p="cotaTva" data-num="1" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.cotaTva ?? 21)}">%</label>
+    </div>
+  </div></details>
+
+  <details class="card" data-k="et" ${op('et', d.tip === 'mp')}><summary>Etape și eșalonare <span class="sub ${Math.abs(sumPct - 100) > 0.01 && (d.etape || []).length ? 'badline' : ''}">${L.fmt(sumPct)}%</span></summary><div class="bd">
+    <div class="rows"><table class="ed"><thead><tr><th style="width:22%">Etapă</th><th>Descriere (apare în ofertă și contract)</th><th style="width:70px">%</th><th style="width:18%">Moment facturare</th><th style="width:18%">Durată</th><th class="n" style="width:90px">Sumă</th><th></th></tr></thead><tbody>
+    ${(d.etape || []).map((e, i) => `<tr><td><textarea data-p="etape.${i}.den" rows="2">${esc(e.den)}</textarea></td><td><textarea data-p="etape.${i}.desc" rows="2">${esc(e.desc)}</textarea></td><td class="nn"><input data-p="etape.${i}.pct" data-num="1" value="${esc(e.pct)}"></td><td><textarea data-p="etape.${i}.cond" rows="2">${esc(e.cond)}</textarea></td><td><textarea data-p="etape.${i}.durata" rows="2">${esc(e.durata)}</textarea></td><td class="calc" data-et="${i}">${L.eur(t.prestator * L.n(e.pct) / 100)}</td><td><button class="x" data-del="etape.${i}" title="Șterge etapa">×</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-add="etape">+ Etapă</button><button class="btn small" id="etStd">Etape standard ${d.tip === 'mp' ? '(10/30/20/40)' : '(50/50)'}</button></div>
+  </div></details>
+
+  <details class="card" data-k="txt" ${op('txt', false)}><summary>Texte ofertă <span class="sub">un rând = un punct</span></summary><div class="bd">
+    ${field('Estimări suplimentare (după suprafață și cost/mp, care se scriu automat)', ta('estimari', 3))}
+    ${field('Note (fraza despre TVA se adaugă automat după firmă)', ta('note', 5))}
+    ${field('Nu sunt incluse în ofertă', ta('excluse', 6))}
+    ${field('Plată și valabilitate', ta('plata', 3))}
+    <div><button class="btn small" id="txtStd">Repune textele standard pentru ${tipLbl[d.tip]}</button></div>
+  </div></details>
+
+  ${d.tip === 'mp' ? `<details class="card" data-k="fin" ${op('fin', !!d.final)}><summary>Calcul final (suprafețe reale) <span class="sub">${d.final ? 'arh. final ' + L.eur(L.arhFinal(d)) : 'neînceput'}</span></summary><div class="bd">
+    ${d.final ? `<p class="sub" style="margin:0">Introdu suprafețele din proiectul final. Rezistența și instalațiile se plătesc separat; contează onorariul de arhitectură${t.rel ? ' + releveu' : ''}.</p>
+      ${zonesEditor('final.zone', false)}
+      <div class="grid">${field('Dată calcul final', inp('final.data', { type: 'date' }))}${field('Observații', inp('final.note'))}</div>
+      <div><button class="btn small danger" id="finDel">Renunță la calculul final</button></div>`
+    : `<p class="sub" style="margin:0">Când proiectul e gata, copiază calculul și trece suprafețele reale ca să ai suma finală pentru arhitectură.</p><div><button class="btn" id="finStart">Copiază calculul ofertei și începe</button></div>`}
+  </div></details>` : ''}
+
+  <details class="card" data-k="cu" ${op('cu', cuFor(d.id).length > 0)}><summary>Certificat de urbanism și avize <span class="sub" id="cuSum"></span></summary><div class="bd" id="cuBody"></div></details>
+
+  <details class="card" data-k="ctr" ${op('ctr', !!d.contract)}><summary>Contract <span class="sub">${d.contract?.nr ? 'nr. ' + esc(d.contract.nr) + (d.contract.data ? ' / ' + L.dataRo(d.contract.data) : '') : 'netransformată'}</span></summary><div class="bd" id="ctrBody">${contractEditor()}</div></details>
+
+  <details class="card" data-k="pl" ${op('pl', !!d.contract)}><summary>Plăți pe această ofertă <span class="sub" id="plSum"></span></summary><div class="bd" id="plBody"></div></details>
+
+  <details class="card" data-k="int" ${op('int', !!d.notaExcel)}><summary>Note interne</summary><div class="bd">
+    ${field('Note (nu apar în documente)', ta('noteInterne', 3))}
+    ${d.notaExcel ? `<div><div class="sub" style="margin-bottom:4px">Ce era lângă calcul în foaia Excel „${esc(d.excelSheet)}” (plăți, observații):</div><div class="note-box">${esc(d.notaExcel)}</div></div>` : ''}
+    ${d.fisierOferta ? `<div class="sub">Fișier ofertă găsit în folder: <span class="num">${esc(d.fisierOferta)}</span></div>` : ''}
+  </div></details>`;
+  title(); renderOfferPayments(); renderCuCard(); bindForm();
+}
+
+function zonesEditor(path, full) {
+  const d = S.draft; const zs = getPath(d, path) || [];
+  const ex = d.existent || zs.some((z) => L.n(z.rel) || L.n(z.exp));
+  const cols = [['den', 'Zonă', 0], ['mp', 'mp', 1], ['arh', 'Arh. €/mp', 1]];
+  if (ex) cols.push(['rel', 'Releveu €/mp', 1], ['exp', 'Expertiză €/mp', 1]);
+  cols.push(['rez', 'Rez. €/mp', 1], ['inst', 'Inst. €/mp', 1]);
+  if (full) cols.push(['cost', 'Cost constr. €/mp', 1]);
+  return `<div class="rows"><table class="ed"><thead><tr>${cols.map((c) => `<th>${c[1]}</th>`).join('')}<th class="n">Arhitectură</th><th></th></tr></thead><tbody>
+    ${zs.map((z, i) => `<tr>${cols.map((c) => `<td class="${c[2] ? 'nn' : ''}"${c[0] === 'den' ? ' style="min-width:140px"' : ''}><input data-p="${path}.${i}.${c[0]}" ${c[2] ? 'data-num="1" inputmode="decimal"' : ''} value="${esc(z[c[0]] ?? '')}"></td>`).join('')}<td class="calc" data-z="${path}.${i}">${L.eur(L.n(z.mp) * (L.n(z.arh) + L.n(z.rel)))}</td><td><button class="x" data-del="${path}.${i}" title="Șterge zona">×</button></td></tr>`).join('')}
+  </tbody></table></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><button class="btn small" data-add="${path}">+ Zonă</button>
+  ${full ? `<label class="check"><input type="checkbox" data-c="existent" ${ex ? 'checked' : ''}> Construcție existentă (releveu, expertiză)</label>` : ''}</div>`;
+}
+function oreEditor() {
+  const d = S.draft;
+  return `<div class="rows"><table class="ed"><thead><tr><th>Activitate</th><th style="width:90px">Ore</th><th style="width:100px">€/oră</th><th class="n" style="width:100px">Cost</th><th></th></tr></thead><tbody>
+  ${(d.ore || []).map((r, i) => `<tr><td><textarea data-p="ore.${i}.den" rows="1">${esc(r.den)}</textarea></td><td class="nn"><input data-p="ore.${i}.ore" data-num="1" value="${esc(r.ore)}"></td><td class="nn"><input data-p="ore.${i}.tarif" data-num="1" value="${esc(r.tarif)}"></td><td class="calc" data-o="${i}">${L.eur(L.n(r.ore) * L.n(r.tarif))}</td><td><button class="x" data-del="ore.${i}">×</button></td></tr>`).join('')}
+  </tbody></table></div><div><button class="btn small" data-add="ore">+ Activitate</button></div>`;
+}
+function forfEditor() {
+  const d = S.draft;
+  return `<div class="rows"><table class="ed"><thead><tr><th style="width:26%">Livrabil</th><th>Descriere</th><th style="width:100px">Cost €</th><th style="width:16%">Durată</th><th></th></tr></thead><tbody>
+  ${(d.forfetar || []).map((r, i) => `<tr><td><textarea data-p="forfetar.${i}.den" rows="2">${esc(r.den)}</textarea></td><td><textarea data-p="forfetar.${i}.desc" rows="2">${esc(r.desc)}</textarea></td><td class="nn"><input data-p="forfetar.${i}.cost" data-num="1" value="${esc(r.cost)}"></td><td><textarea data-p="forfetar.${i}.durata" rows="2">${esc(r.durata)}</textarea></td><td><button class="x" data-del="forfetar.${i}">×</button></td></tr>`).join('')}
+  </tbody></table></div><div><button class="btn small" data-add="forfetar">+ Livrabil</button></div>`;
+}
+
+function contractEditor() {
+  const d = S.draft;
+  if (!d.contract) return `<p class="sub" style="margin:0">Completezi datele beneficiarului (poți încărca buletinul, CU-ul sau extrasul CF și le citesc eu), apoi descarci contractul .docx pe modelul tău. În contract intră doar onorariul de arhitectură${d.tip === 'mp' ? '; rezistența și instalațiile apar informativ în Anexa 3' : ''}.</p><div><button class="btn primary" id="toCtr">Transformă în contract</button></div>`;
+  const c = d.contract; c.ben = c.ben || { tip: 'PF' }; const b = c.ben;
+  const zs = d.tip === 'mp' ? ((c.dinFinal && d.final ? d.final.zone : d.zone) || []) : [];
+  return `
+  <div class="scanbox" id="scanBox">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">Citește din documente</b><span class="sub">buletin, certificat de urbanism, extras CF (imagine sau PDF)</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="scanFiles" multiple accept="image/*,application/pdf"><button class="btn small" id="scanGo">Citește și completează</button><span class="sub" id="scanMsg"></span></div>
+  </div>
+  <div class="grid">
+    ${field('Nr. contract', `<div style="display:flex;gap:6px">${inp('contract.nr', { ph: 'următorul: ' + sett().nextContract[d.firma] })}<button class="btn small" id="ctrNr" title="Folosește următorul număr">↻</button></div>`)}
+    ${field('Data contractului', inp('contract.data', { type: 'date' }))}
+    ${field('Tip beneficiar', `<select data-p="contract.ben.tip" id="i-bentip"><option value="PF" ${b.tip !== 'PJ' ? 'selected' : ''}>Persoană fizică</option><option value="PJ" ${b.tip === 'PJ' ? 'selected' : ''}>Persoană juridică</option></select>`)}
+  </div>
+  ${b.tip === 'PJ' ? `<div class="grid">
+    ${field('Denumire firmă', inp('contract.ben.denumire', { ph: d.clientNume }))}${field('Sediu', inp('contract.ben.sediu'))}${field('Nr. Reg. Com.', inp('contract.ben.regCom'))}${field('CUI', inp('contract.ben.cui'))}
+    ${field('Cont IBAN', inp('contract.ben.iban'))}${field('Banca', inp('contract.ben.banca'))}${field('Reprezentant', inp('contract.ben.reprez'))}${field('Calitate', inp('contract.ben.calitate', { ph: 'Administrator' }))}
+    ${field('Telefon', inp('contract.ben.tel'))}${field('E-mail', inp('contract.ben.email'))}</div>`
+  : `<div class="grid">
+    ${field('Nume beneficiar', inp('contract.ben.nume', { ph: d.clientNume }))}${field('Domiciliu', inp('contract.ben.domiciliu'))}${field('CNP', inp('contract.ben.cnp'))}
+    ${field('CI seria', inp('contract.ben.ciSerie'))}${field('CI nr.', inp('contract.ben.ciNr'))}${field('Telefon', inp('contract.ben.tel'))}${field('E-mail', inp('contract.ben.email'))}</div>`}
+  <div class="grid">
+    ${field('Denumire investiție (din CU)', inp('contract.investitie', { ph: d.obiectiv }))}
+    ${field('Amplasament', inp('contract.amplasament', { ph: [d.localitate, d.adresa].filter(Boolean).join(', ') }))}
+    ${field('Nr. CF', inp('contract.cf'))}${field('Nr. cadastral', inp('contract.nrCad'))}
+    ${field('Certificat de urbanism (nr./dată)', inp('contract.cu'))}
+  </div>
+  ${d.tip === 'mp' ? `<div class="grid">${zs.map((z) => field('Regim înălțime – ' + esc(z.den), `<input data-p="contract.regim.${esc(z.den).replace(/\./g, '·')}" value="${esc((c.regim || {})[z.den] ?? '')}" placeholder="ex. P+1E">`)).join('')}</div>
+    ${d.final ? `<label class="check"><input type="checkbox" data-c="contract.dinFinal" ${c.dinFinal ? 'checked' : ''}> Folosește suprafețele din calculul final</label>` : ''}` : ''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
+}
+
+function bindForm() {
+  const f = $('#form');
+  f.oninput = (e) => {
+    const el = e.target; const p = el.dataset.p; if (!p) return;
+    let v = el.value; if (el.dataset.num) v = L.n(v);
+    if (p.startsWith('contract.regim.')) { S.draft.contract.regim = S.draft.contract.regim || {}; S.draft.contract.regim[p.slice(15).replace(/·/g, '.')] = v; }
+    else setPath(S.draft, p, v);
+    if (p === 'clientNume' || p === 'localitate') title();
+    if (p === 'data' && S.draft.sursa !== 'excel') { S.draft.nr = L.nrInreg(v, seqFor(v, S.draft.id)); const n = $('#i-nr'); if (n) n.value = S.draft.nr; }
+    liveCalc(); scheduleSave();
+  };
+  f.onchange = (e) => {
+    const el = e.target;
+    if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
+    if (el.dataset.p === 'firma') { S.draft.tva.arh = el.value === 'arhideea'; renderForm(); renderSummary(); scheduleSave(); }
+    if (el.dataset.p === 'contract.ben.tip') { renderForm(); scheduleSave(); }
+    if (el.dataset.p === 'status') renderSummary();
+  };
+  f.onclick = async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const d = S.draft;
+    if (b.dataset.tip) { if (d.tip === b.dataset.tip) return; d.tip = b.dataset.tip; if (!d.ore?.length) d.ore = L.ofertaNoua(sett(), 'ore').ore; if (!d.forfetar?.length) d.forfetar = L.ofertaNoua(sett(), 'forfetar').forfetar; renderForm(); renderSummary(); scheduleSave(); return; }
+    if (b.dataset.add) { const p = b.dataset.add; const arr = getPath(d, p) || []; const proto = { zone: { den: 'Zona ' + (arr.length + 1), mp: 0, arh: sett().tarifArh, rel: 0, exp: 0, rez: sett().tarifRez, inst: sett().tarifInst, cost: sett().costMp }, 'final.zone': { den: 'Zona ' + (arr.length + 1), mp: 0, arh: sett().tarifArh, rel: 0, exp: 0, rez: 0, inst: 0, cost: 0 }, ore: { den: '', ore: 0, tarif: sett().tarifOrar }, forfetar: { den: '', desc: '', cost: 0, durata: '' }, etape: { den: '', desc: '', pct: 0, cond: '', durata: '' } }[p]; arr.push(proto); setPath(d, p, arr); renderForm(); renderSummary(); scheduleSave(); return; }
+    if (b.dataset.del) { const ks = b.dataset.del.split('.'); const i = +ks.pop(); getPath(d, ks.join('.')).splice(i, 1); renderForm(); renderSummary(); scheduleSave(); return; }
+    if (b.id === 'reNr') { d.nr = L.nrInreg(d.data, seqFor(d.data, d.id)); renderForm(); scheduleSave(); return; }
+    if (b.id === 'etStd') { d.etape = clean(d.tip === 'mp' ? L.DEF.etapeMp : L.DEF.etapeAlte); renderForm(); scheduleSave(); return; }
+    if (b.id === 'txtStd') { const n = L.ofertaNoua(sett(), d.tip); d.note = n.note; d.excluse = n.excluse; d.plata = n.plata; renderForm(); scheduleSave(); toast('Am repus textele standard'); return; }
+    if (b.id === 'finStart') { d.final = { zone: clean(d.zone), data: L.ofertaNoua(sett()).data, note: '' }; if (!['contractată', 'în lucru'].includes(d.status)) {} renderForm(); renderSummary(); scheduleSave(); return; }
+    if (b.id === 'finDel') { if (b.dataset.sure) { d.final = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
+    if (b.id === 'toCtr') { d.contract = { nr: '', data: L.ofertaNoua(sett()).data, ben: { tip: 'PF', nume: d.clientNume }, investitie: '', amplasament: '', cf: '', nrCad: '', regim: {} }; const c = S.clients.get(d.clientId); if (c) Object.assign(d.contract.ben, { tel: c.tel || '', email: c.email || '', domiciliu: c.adresa || '', cnp: c.cnp || '', ciSerie: c.ciSerie || '', ciNr: c.ciNr || '' }); renderForm(); scheduleSave(); return; }
+    if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); renderForm(); scheduleSave(); return; }
+    if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
+    if (b.id === 'dlCtr') { await downloadContract(); return; }
+    if (b.id === 'scanGo') { await scanDocs(); return; }
+  };
+}
+
+function liveCalc() {
+  const d = S.draft; const t = L.totals(d);
+  $$('[data-z]').forEach((el) => { const z = getPath(d, el.dataset.z); if (z) el.textContent = L.eur(L.n(z.mp) * (L.n(z.arh) + L.n(z.rel))); });
+  $$('[data-o]').forEach((el) => { const r = d.ore[+el.dataset.o]; if (r) el.textContent = L.eur(L.n(r.ore) * L.n(r.tarif)); });
+  $$('[data-et]').forEach((el) => { const e = d.etape[+el.dataset.et]; if (e) el.textContent = L.eur(t.prestator * L.n(e.pct) / 100); });
+  renderSummary();
+}
+
+function renderSummary() {
+  const d = S.draft; if (!d) return; const t = L.totals(d);
+  const fin = d.tip === 'mp' && d.final ? L.calcZone(d.final.zone, d.tva, d.cotaTva) : null;
+  const paid = paidFor((p) => p.offerId === d.id);
+  const contr = L.esteContractata(d);
+  const due = contr ? dueOffer(d) : 0;
+  const cuTva = d.firma === 'arhideea' && d.tva?.arh;
+  const sumPct = (d.etape || []).reduce((s, e) => s + L.n(e.pct), 0);
+  $('#sum').innerHTML = `
+  <div class="sumcard"><h3>Onorariu arhitectură${t.rel ? ' + releveu' : ''}</h3>
+    <div class="big">${L.eur(t.prestator)}</div>
+    <div class="sub">${cuTva ? L.eur(t.prestatorTva) + ' cu TVA' : 'fără TVA (BIA)'}${t.inv && d.tip === 'mp' ? ' · ' + L.pct(t.prestator / t.inv) + ' din investiție' : ''}</div>
+  </div>
+  ${d.tip === 'mp' ? `<div class="sumcard"><h3>Ofertă completă</h3><div class="kv">
+    <span>Suprafață</span><span>${L.fmt(t.mp)} mp</span>
+    <span>Arhitectură</span><span>${L.eur(t.arh)}</span>
+    ${t.rel ? `<span>Releveu</span><span>${L.eur(t.rel)}</span>` : ''}
+    ${t.exp ? `<span class="mut">Expertiză (colab.)</span><span>${L.eur(t.exp)}</span>` : ''}
+    <span class="mut">Rezistență (colab.)</span><span>${L.eur(t.rez)}</span>
+    <span class="mut">Instalații (colab.)</span><span>${L.eur(t.inst)}</span>
+    <span class="tot">Total fără TVA</span><span class="tot">${L.eur(t.total)}</span>
+    <span>Cu TVA unde se aplică</span><span>${L.eur(t.totalTva)}</span>
+    <span class="mut">Investiție estimată</span><span>${t.inv ? L.eur(t.inv) : '—'}</span>
+  </div></div>` : `<div class="sumcard"><h3>${d.tip === 'ore' ? 'Estimare ore' : 'Total livrabile'}</h3><div class="kv">${d.tip === 'ore' ? `<span>Ore estimate</span><span>${L.fmt(t.ore)}</span>` : ''}<span class="tot">Total fără TVA</span><span class="tot">${L.eur(t.total)}</span>${cuTva ? `<span>Cu TVA</span><span>${L.eur(t.totalTva)}</span>` : ''}</div></div>`}
+  ${fin ? `<div class="sumcard"><h3>Final vs ofertat</h3><div class="kv"><span>Suprafață reală</span><span>${L.fmt(fin.mp)} mp</span><span>Arh. final</span><span>${L.eur(fin.prestator)}</span><span class="mut">Diferență</span><span style="color:${fin.prestator >= t.prestator ? 'var(--ok)' : 'var(--bad)'}">${(fin.prestator >= t.prestator ? '+' : '') + L.eur(fin.prestator - t.prestator)}</span></div></div>` : ''}
+  <div class="sumcard"><h3>Încasări</h3>${contr ? '' : '<div class="sub" style="margin-bottom:6px">Oferta nu e încă contractată; soldul pornește de la contract.</div>'}<div class="kv"><span>De încasat${cuTva ? ' (cu TVA)' : ''}</span><span>${L.eur(due)}</span><span>Încasat</span><span>${L.eur(paid)}</span><span class="tot">Rest</span><span class="tot" style="color:${due - paid > 0.5 ? 'var(--bad)' : 'var(--ok)'}">${L.eur(due - paid)}</span></div>
+    ${Math.abs(sumPct - 100) > 0.01 && (d.etape || []).length ? `<div class="warnline" style="margin-top:6px">Etapele însumează ${L.fmt(sumPct)}%, nu 100%.</div>` : ''}</div>
+  <div class="actions">
+    <button class="btn primary" id="dlOff">Descarcă oferta .docx</button>
+    <button class="btn" id="dupOff">Duplică (ofertă nouă pe baza acesteia)</button>
+    <button class="btn ghost danger" id="delOff">Șterge oferta</button>
+  </div>`;
+  $('#dlOff').onclick = downloadOffer;
+  $('#dupOff').onclick = () => { flushSave(); newOffer(null, S.draft); toast('Ofertă duplicată'); };
+  $('#delOff').onclick = (e) => { const b = e.currentTarget; if (b.dataset.sure) { const id = S.draft.id; S.draft = null; S.offers.delete(id); remove('offers', id); go('oferte'); toast('Oferta a fost ștearsă'); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou pentru ștergere'; } };
+}
+
+/* -------- payments (offer) -------- */
+const METODE = ['bancă', 'cash', 'revolut', 'altul'];
+function paymentForm(prefix, offerId, clientId) {
+  const today = L.ofertaNoua(sett()).data;
+  const offers = clientId ? [...S.offers.values()].filter((o) => o.clientId === clientId) : [];
+  return `<div class="grid" id="${prefix}Form" style="align-items:end">
+    ${field('Data', `<input type="date" id="${prefix}Data" value="${today}">`)}
+    ${field('Sumă', `<input id="${prefix}Suma" inputmode="decimal" placeholder="0">`)}
+    ${field('Monedă', `<select id="${prefix}Mon"><option>EUR</option><option>RON</option></select>`)}
+    ${field('Curs (dacă RON)', `<input id="${prefix}Curs" inputmode="decimal" placeholder="ex. 5,09">`)}
+    ${field('Metodă', `<select id="${prefix}Met">${METODE.map((m) => `<option>${m}</option>`).join('')}</select>`)}
+    ${offerId ? '' : field('Ofertă', `<select id="${prefix}Off"><option value="">— fără —</option>${offers.map((o) => `<option value="${o.id}">${esc(o.obiectiv)} · ${esc(L.dataRo(o.data) || o.nr || '')}</option>`).join('')}</select>`)}
+    ${field('Descriere / fază', `<input id="${prefix}Desc" placeholder="ex. avans, faza 1">`)}
+    ${field('Nr. factură', `<input id="${prefix}Fact">`)}
+    <button class="btn primary" id="${prefix}Add">Înregistrează plata</button>
+  </div>`;
+}
+function bindPaymentForm(prefix, offerId, clientId, after) {
+  $('#' + prefix + 'Add').onclick = () => {
+    const suma = L.n($('#' + prefix + 'Suma').value); if (!suma) { toast('Scrie suma plății'); return; }
+    const mon = $('#' + prefix + 'Mon').value; const curs = L.n($('#' + prefix + 'Curs').value);
+    if (mon === 'RON' && !curs) { toast('Pentru RON trece și cursul, ca să pot calcula în euro'); return; }
+    const oid = offerId || ($('#' + prefix + 'Off') ? $('#' + prefix + 'Off').value : '');
+    const o = oid ? S.offers.get(oid) : null;
+    const p = { id: L.uid('p_'), clientId: clientId || o?.clientId || '', offerId: oid, data: $('#' + prefix + 'Data').value, suma, moneda: mon, curs, sumaEur: mon === 'RON' ? L.round2(suma / curs) : suma, metoda: $('#' + prefix + 'Met').value, descriere: $('#' + prefix + 'Desc').value, factura: $('#' + prefix + 'Fact').value, createdAt: Date.now() };
+    S.payments.set(p.id, p); write('payments', p.id, p); toast('Plată înregistrată: ' + L.eur(p.sumaEur)); after && after();
+  };
+}
+function payRows(list, showOffer) {
+  if (!list.length) return '<div class="sub">Nicio plată înregistrată.</div>';
+  list.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  return `<div class="tablebox"><table class="list"><thead><tr><th>Data</th><th class="n">Sumă</th><th class="n">EUR</th><th>Metodă</th><th>Descriere</th>${showOffer ? '<th>Ofertă</th>' : ''}<th></th></tr></thead><tbody>
+  ${list.map((p) => { const o = S.offers.get(p.offerId); return `<tr><td class="num">${L.dataRo(p.data)}</td><td class="n">${L.fmt(p.suma)} ${esc(p.moneda)}${p.moneda === 'RON' ? `<div class="sub">curs ${L.fmt(p.curs, 4)}</div>` : ''}</td><td class="n">${L.eur(p.sumaEur)}</td><td>${esc(p.metoda)}</td><td>${esc(p.descriere)}${p.factura ? `<div class="sub">factura ${esc(p.factura)}</div>` : ''}</td>${showOffer ? `<td>${o ? `<a href="#o-${o.id}">${esc(o.obiectiv)}</a>` : '<span class="sub">—</span>'}</td>` : ''}<td><button class="x" data-delpay="${p.id}" title="Șterge plata">×</button></td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
+function bindPayDeletes(root, after) {
+  $$('[data-delpay]', root).forEach((b) => (b.onclick = () => { if (b.dataset.sure) { S.payments.delete(b.dataset.delpay); remove('payments', b.dataset.delpay); after && after(); } else { b.dataset.sure = 1; b.textContent = 'șterge?'; b.style.fontSize = '12px'; } }));
+}
+function renderOfferPayments() {
+  const box = $('#plBody'); if (!box || !S.draft) return;
+  const list = [...S.payments.values()].filter((p) => p.offerId === S.draft.id);
+  $('#plSum').textContent = list.length ? L.eur(list.reduce((s, p) => s + L.n(p.sumaEur), 0)) + ' încasat' : '';
+  box.innerHTML = payRows(list, false) + paymentForm('op', S.draft.id, S.draft.clientId);
+  bindPaymentForm('op', S.draft.id, S.draft.clientId, () => { renderOfferPayments(); renderSummary(); });
+  bindPayDeletes(box, () => { renderOfferPayments(); renderSummary(); });
+}
+
+/* -------- documents -------- */
+const tplCache = {};
+async function tpl(name) { if (!tplCache[name]) { const r = await fetch('tpl/' + name + '.json'); if (!r.ok) throw new Error('șablonul ' + name + ' lipsește'); const j = await r.json(); const bin = atob(j.b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); tplCache[name] = u.buffer; } return tplCache[name]; }
+async function renderDocx(name, data) {
+  const zip = new PizZip(await tpl(name));
+  const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: () => '' });
+  doc.render(data);
+  return doc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+async function save(filename, blob) {
+  if (!S.dl) { toast('Descărcarea nu e disponibilă în această vizualizare'); return false; }
+  try { const r = await S.dl.save({ filename, data: blob }); if (r === 'saved' || r?.status === 'saved' || r) toast('Fișier pregătit: ' + filename); return true; }
+  catch (e) { if (e?.code !== 'declined' && e?.code !== 'cancelled') toast('Nu am putut salva fișierul: ' + (e.message || e.code)); return false; }
+}
+const fileSafe = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+async function downloadOffer() {
+  flushSave();
+  try {
+    const d = S.draft;
+    const blob = await renderDocx('oferta', L.dataOferta(d, sett()));
+    const ok = await save(fileSafe(`Oferta pentru servicii de proiectare ${d.clientNume} ${d.localitate}`) + '.docx', blob);
+    if (ok && d.status === 'ciornă') { d.status = 'trimisă'; scheduleSave(); renderForm(); renderSummary(); }
+  } catch (e) { toast('Eroare la generarea ofertei: ' + e.message, 5000); console.error(e); }
+}
+async function downloadContract() {
+  const d = S.draft;
+  if (!d.contract.nr) { const s = sett(); d.contract.nr = String(s.nextContract[d.firma]); }
+  const s = sett(); const nrv = parseInt(d.contract.nr, 10);
+  if (nrv && nrv >= s.nextContract[d.firma]) { const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, [d.firma]: nrv + 1 }; S.settings = ns; write('settings', 'main', ns); }
+  if (!['în lucru', 'finalizată'].includes(d.status)) d.status = 'contractată';
+  // păstrează datele de contact pe fișa clientului
+  const c = S.clients.get(d.clientId); const b = d.contract.ben || {};
+  if (c) { const nc = { ...c }; ['tel', 'email', 'cnp', 'ciSerie', 'ciNr'].forEach((k) => { if (b[k] && !nc[k]) nc[k] = b[k]; }); if (b.domiciliu && !nc.adresa) nc.adresa = b.domiciliu; if (b.tip) nc.tip = b.tip; if (JSON.stringify(nc) !== JSON.stringify(c)) { S.clients.set(c.id, nc); write('clients', c.id, nc); } }
+  flushSave(); renderForm(); renderSummary();
+  try {
+    const blob = await renderDocx('contract', L.dataContract(d, sett()));
+    await save(fileSafe(`Contract proiectare ${d.clientNume} ${d.localitate}`) + '.docx', blob);
+  } catch (e) { toast('Eroare la generarea contractului: ' + e.message, 5000); console.error(e); }
+}
+
+/* -------- scan → fields (Claude) -------- */
+async function pdfToImages(file) {
+  const lib = window.pdfjsLib; if (!lib) throw new Error('nu pot citi PDF aici');
+  if (!window.pdfjsWorker) await new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; sc.onload = ok; sc.onerror = () => ko(new Error('nu am putut încărca cititorul PDF')); document.head.appendChild(sc); });
+  const pdf = await lib.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
+  const out = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+    const page = await pdf.getPage(i); const vp = page.getViewport({ scale: 1.6 });
+    const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+    await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    out.push(await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.85)));
+  }
+  return out;
+}
+async function scanDocs() {
+  const msg = $('#scanMsg'); const files = [...($('#scanFiles').files || [])];
+  if (!files.length) { msg.textContent = 'Alege întâi fișierele.'; return; }
+  if (!S.sample) { msg.textContent = 'Citirea cu Claude nu e disponibilă în această vizualizare.'; return; }
+  msg.textContent = 'Pregătesc imaginile…';
+  try {
+    const lim = await S.sample.limits().catch(() => null);
+    if (!lim?.images) { msg.textContent = 'Trimiterea de imagini nu e permisă în această vizualizare.'; return; }
+    let imgs = [];
+    for (const f of files) imgs.push(f);
+    imgs = imgs.slice(0, lim.images.maxCount || 5);
+    msg.textContent = 'Citesc documentele (' + imgs.length + ' imagini)…';
+    const prompt = `Ești asistentul unui birou de arhitectură din România. Imaginile atașate pot fi: carte de identitate, certificat de urbanism (CU), extras de carte funciară, certificat de înregistrare firmă. Extrage datele și răspunde DOAR cu un obiect JSON cu cheile (șir gol dacă lipsesc):
+{"tip":"PF sau PJ","nume":"numele complet al persoanei, Prenume Nume","domiciliu":"adresa de domiciliu completă din buletin","cnp":"","ciSerie":"","ciNr":"","denumire":"denumirea firmei dacă e PJ","sediu":"","cui":"","regCom":"","investitie":"denumirea lucrării/investiției din CU","amplasament":"localitate, stradă, număr ale imobilului din CU sau CF","cf":"numărul cărții funciare","nrCad":"număr cadastral sau topografic","cu":"nr. și data certificatului de urbanism, ex. 1234/12.05.2026"}`;
+    const res = await S.sample.json(prompt, { images: imgs, modelTier: 'default' });
+    const c = S.draft.contract; const b = c.ben; const filled = [];
+    const put = (obj, k, v, lbl) => { if (v && String(v).trim()) { obj[k] = String(v).trim(); filled.push(lbl); } };
+    if (res.tip === 'PJ' || (res.denumire && !res.nume)) b.tip = 'PJ';
+    put(b, 'nume', res.nume, 'nume'); put(b, 'domiciliu', res.domiciliu, 'domiciliu'); put(b, 'cnp', res.cnp, 'CNP'); put(b, 'ciSerie', res.ciSerie, 'serie CI'); put(b, 'ciNr', res.ciNr, 'nr. CI');
+    put(b, 'denumire', res.denumire, 'denumire'); put(b, 'sediu', res.sediu, 'sediu'); put(b, 'cui', res.cui, 'CUI'); put(b, 'regCom', res.regCom, 'Reg. Com.');
+    put(c, 'investitie', res.investitie, 'investiție'); put(c, 'amplasament', res.amplasament, 'amplasament'); put(c, 'cf', res.cf, 'CF'); put(c, 'nrCad', res.nrCad, 'nr. cad.'); put(c, 'cu', res.cu, 'CU');
+    renderForm(); scheduleSave();
+    $('#scanMsg').textContent = filled.length ? 'Completat: ' + filled.join(', ') + '. Verifică datele înainte de semnare.' : 'Nu am găsit date lizibile.';
+  } catch (e) { msg.textContent = e.code === 'not_granted' ? 'Accesul la Claude nu a fost permis.' : 'Nu am putut citi: ' + (e.message || e.code); }
+}
+
+/* ---------------- CLIENTS ---------------- */
+function clientStats(c) {
+  const offers = [...S.offers.values()].filter((o) => o.clientId === c.id);
+  const contracted = offers.filter(L.esteContractata);
+  const due = contracted.reduce((s, o) => s + dueOffer(o), 0);
+  const paid = paidFor((p) => p.clientId === c.id);
+  return { offers, contracted, due, paid, rest: due - paid };
+}
+function viewClients() {
+  const q = norm(S.clQ);
+  const list = [...S.clients.values()].map((c) => ({ c, s: clientStats(c) })).filter(({ c }) => !q || norm([c.nume, c.localitate, c.tel, c.email].join(' ')).includes(q));
+  list.sort((a, b) => (b.s.rest > 0.5) - (a.s.rest > 0.5) || norm(a.c.nume).localeCompare(norm(b.c.nume)));
+  const totRest = list.reduce((s, x) => s + Math.max(0, x.s.rest), 0);
+  $('#main').innerHTML = `<div class="toolbar"><h2>Clienți <span class="sub">${list.length}</span></h2>
+    <input id="clQ" class="btn" style="min-width:220px" placeholder="Filtrează clienții…" value="${esc(S.clQ)}"><button class="btn" id="clNew">+ Client</button></div>
+  <div class="kpis"><div class="kpi"><div class="lbl">Clienți cu contract</div><div class="val">${list.filter((x) => x.s.contracted.length).length}</div></div><div class="kpi bad"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(totRest)}</div></div></div>
+  <div class="tablebox"><table class="list"><thead><tr><th>Client</th><th>Localitate</th><th class="n">Oferte</th><th class="n">Contractat (arh.)</th><th class="n">Încasat</th><th class="n">Rest</th></tr></thead><tbody>
+  ${list.map(({ c, s }) => `<tr class="click" data-id="${c.id}"><td><b>${esc(c.nume)}</b>${c.tel ? `<div class="sub">${esc(c.tel)}</div>` : ''}</td><td>${esc(c.localitate)}</td><td class="n">${s.offers.length}</td><td class="n">${s.due ? L.eur(s.due) : '—'}</td><td class="n">${s.paid ? L.eur(s.paid) : '—'}</td><td class="n" style="color:${s.rest > 0.5 ? 'var(--bad)' : 'inherit'}">${s.due || s.paid ? L.eur(s.rest) : '—'}</td></tr>`).join('')}
+  </tbody></table></div>`;
+  $('#clQ').oninput = (e) => { S.clQ = e.target.value; const pos = e.target.selectionStart; viewClients(); const i = $('#clQ'); i.focus(); i.setSelectionRange(pos, pos); };
+  $('#clNew').onclick = () => { const c = { id: L.uid('c_'), nume: 'Client nou', tip: 'PF', localitate: '', adresa: '', tel: '', email: '', note: '', sursa: 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); go('client', c.id); };
+  $$('tr.click').forEach((r) => (r.onclick = () => go('client', r.dataset.id)));
+}
+function viewClient() {
+  const c = S.clients.get(S.clientId); if (!c) { go('clienti'); return; }
+  const s = clientStats(c);
+  const pays = [...S.payments.values()].filter((p) => p.clientId === c.id);
+  const regs = S.registru.filter((r) => { const a = norm(r.beneficiar), b = norm(c.nume).split(' ').filter((w) => w.length > 3); return b.length && b.every((w) => a.includes(w)); });
+  const cf = (k, lbl, ph) => field(lbl, `<input data-ck="${k}" value="${esc(c[k] ?? '')}" ${ph ? `placeholder="${ph}"` : ''}>`);
+  $('#main').innerHTML = `<div class="ehead"><button class="back" id="bk">← Clienți</button><h2>${esc(c.nume)}</h2><span class="sub">${esc(c.localitate)}</span></div>
+  <div class="kpis"><div class="kpi"><div class="lbl">Contractat (arhitectură)</div><div class="val">${L.eur(s.due)}</div></div><div class="kpi ok"><div class="lbl">Încasat</div><div class="val">${L.eur(s.paid)}</div></div><div class="kpi ${s.rest > 0.5 ? 'bad' : ''}"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(s.rest)}</div></div></div>
+  <div class="split"><div>
+    <div class="card"><div class="hd">Oferte și contracte</div><div class="bd">
+      ${s.offers.length ? `<div class="tablebox"><table class="list"><tbody>${s.offers.map((o) => `<tr class="click" data-o="${o.id}"><td><b>${esc(o.obiectiv)}</b><div class="sub">${esc(L.dataRo(o.data) || 'din Excel')} · ${tipLbl[o.tip]}${o.contract?.nr ? ' · contract ' + esc(o.contract.nr) : ''}</div></td><td class="n">${L.eur(L.arhFinal(o))}</td><td>${pill(o.status)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sub">Nicio ofertă.</div>'}
+      <div><button class="btn small" id="clOff">+ Ofertă pentru acest client</button></div>
+    </div></div>
+    <div class="card"><div class="hd">Plăți</div><div class="bd" id="cpBody">${payRows(pays, true)}${paymentForm('cp', null, c.id)}</div></div>
+  </div><div>
+    <div class="card"><div class="hd">Date client</div><div class="bd"><div class="grid" id="cForm">
+      ${cf('nume', 'Nume')}${field('Tip', `<select data-ck="tip"><option ${c.tip !== 'PJ' ? 'selected' : ''}>PF</option><option ${c.tip === 'PJ' ? 'selected' : ''}>PJ</option></select>`)}${cf('localitate', 'Localitate')}${cf('adresa', 'Adresă / domiciliu')}${cf('tel', 'Telefon')}${cf('email', 'E-mail')}${cf('cnp', 'CNP / CUI')}${cf('ciSerie', 'CI seria')}${cf('ciNr', 'CI nr.')}
+    </div>${field('Note', `<textarea data-ck="note" rows="3">${esc(c.note || '')}</textarea>`)}
+    <div><button class="btn small danger" id="clDel">Șterge clientul</button></div></div></div>
+    ${clientDocsCard(c)}
+    ${regs.length ? `<div class="card"><div class="hd">În registrul de proiecte</div><div class="bd">${regs.map((r) => `<div><b>${esc(r.obiect)}</b> <span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span><div class="sub">${esc(r.adresa)} · proiect ${esc(r.nrProiect)}${r.contract ? ' · contract ' + esc(r.contract) : ''}</div></div>`).join('')}</div></div>` : ''}
+  </div></div>`;
+  $('#bk').onclick = () => go('clienti');
+  $$('tr.click').forEach((r) => (r.onclick = () => go('oferta', r.dataset.o)));
+  $('#clOff').onclick = () => { const o = L.ofertaNoua(sett(), 'mp'); o.clientId = c.id; o.clientNume = c.nume; o.localitate = c.localitate; o.nr = L.nrInreg(o.data, seqFor(o.data)); S.offers.set(o.id, o); write('offers', o.id, o); go('oferta', o.id); };
+  let t = null;
+  $('#main').oninput = (e) => { const k = e.target.dataset.ck; if (!k) return; c[k] = e.target.value; clearTimeout(t); t = setTimeout(() => { write('clients', c.id, c); if (k === 'nume') { [...S.offers.values()].filter((o) => o.clientId === c.id && o.clientNume !== c.nume).forEach((o) => { o.clientNume = c.nume; write('offers', o.id, o); }); } }, 700); };
+  bindPaymentForm('cp', null, c.id, viewClient); bindPayDeletes($('#cpBody'), viewClient);
+  bindClientDocs(c);
+  $('#clDel').onclick = (e) => { const b = e.currentTarget; if (s.offers.length) { toast('Clientul are oferte; șterge sau mută întâi ofertele.'); return; } if (b.dataset.sure) { S.clients.delete(c.id); remove('clients', c.id); go('clienti'); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } };
+}
+
+/* ---------------- PAYMENTS ---------------- */
+function viewPayments() {
+  const all = [...S.payments.values()];
+  const years = [...new Set(all.map((p) => (p.data || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  const y = S.f.payYear || 'toți';
+  const list = all.filter((p) => y === 'toți' || (p.data || '').startsWith(y));
+  const tot = list.reduce((s, p) => s + L.n(p.sumaEur), 0);
+  $('#main').innerHTML = `<div class="toolbar"><h2>Plăți <span class="sub">${list.length}</span></h2><select id="pY" class="btn"><option value="toți">Toți anii</option>${years.map((x) => `<option ${x === y ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+  <div class="kpis"><div class="kpi ok"><div class="lbl">Încasat ${y === 'toți' ? 'total' : y}</div><div class="val">${L.eur(tot)}</div></div></div>
+  ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Data</th><th>Client</th><th class="n">Sumă</th><th class="n">EUR</th><th>Metodă</th><th>Descriere</th><th></th></tr></thead><tbody>
+  ${list.sort((a, b) => (b.data || '').localeCompare(a.data || '')).map((p) => { const c = S.clients.get(p.clientId); return `<tr><td class="num">${L.dataRo(p.data)}</td><td>${c ? `<a href="#c-${c.id}">${esc(c.nume)}</a>` : '—'}</td><td class="n">${L.fmt(p.suma)} ${esc(p.moneda)}</td><td class="n">${L.eur(p.sumaEur)}</td><td>${esc(p.metoda)}</td><td>${esc(p.descriere)}</td><td><button class="x" data-delpay="${p.id}">×</button></td></tr>`; }).join('')}
+  </tbody></table></div>` : `<div class="empty">Încă nu ai înregistrat plăți aici. Le adaugi din fișa clientului sau din ofertă (secțiunea „Plăți”).<br>Plățile vechi din Excel le găsești în „Note interne” la fiecare ofertă.</div>`}`;
+  $('#pY').onchange = (e) => { S.f.payYear = e.target.value; viewPayments(); };
+  bindPayDeletes($('#main'), viewPayments);
+}
+
+/* ---------------- REGISTRY ---------------- */
+function viewRegistry() {
+  const q = norm(S.regQ);
+  const list = S.registru.filter((r) => !q || norm([r.beneficiar, r.obiect, r.adresa, r.nrProiect, r.contract, r.rez, r.inst].join(' ')).includes(q));
+  $('#main').innerHTML = `<div class="toolbar"><h2>Registru proiecte <span class="sub">${list.length} din ${S.registru.length} · din „Clienti Arhideea.xlsx”</span></h2><input id="rQ" class="btn" style="min-width:240px" placeholder="Caută în registru…" value="${esc(S.regQ)}"></div>
+  ${S.registru.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Beneficiar</th><th>Obiect</th><th>Adresă</th><th>Nr. proiect</th><th>Contract</th><th>Dovadă OAR</th><th>Rez. / Inst.</th></tr></thead><tbody>
+  ${list.map((r) => `<tr><td><b>${esc(r.beneficiar)}</b> <span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td>${esc(r.obiect)}</td><td>${esc(r.adresa)}</td><td class="num">${esc(r.nrProiect)}</td><td>${esc(r.contract)}</td><td class="num">${esc(r.dovadaOar)}</td><td class="sub">${esc([r.rez, r.inst].filter(Boolean).join(' / '))}</td></tr>`).join('')}
+  </tbody></table></div>` : '<div class="empty">Registrul se încarcă…</div>'}`;
+  $('#rQ').oninput = (e) => { S.regQ = e.target.value; const pos = e.target.selectionStart; viewRegistry(); const i = $('#rQ'); i.focus(); i.setSelectionRange(pos, pos); };
+}
+
+/* ---------------- SETTINGS ---------------- */
+function viewSettings() {
+  const s = sett();
+  const sf = (path, lbl, ph) => field(lbl, `<input data-sp="${path}" value="${esc(getPath(s, path) ?? '')}" ${ph ? `placeholder="${esc(ph)}"` : ''}>`);
+  $('#main').innerHTML = `<div class="toolbar"><h2>Setări</h2><span class="saved" id="ssaved"></span></div>
+  <div class="split"><div>
+    <div class="card"><div class="hd">Valori implicite pentru oferte noi</div><div class="bd"><div class="grid">
+      ${field('Firmă implicită', `<select data-sp="firmaImplicita"><option value="bia" ${s.firmaImplicita !== 'arhideea' ? 'selected' : ''}>BIA Oprea Cristian Daniel</option><option value="arhideea" ${s.firmaImplicita === 'arhideea' ? 'selected' : ''}>SC Atelier Arhideea SRL</option></select>`)}
+      ${sf('tarifArh', 'Arhitectură €/mp')}${sf('tarifRez', 'Rezistență €/mp')}${sf('tarifInst', 'Instalații €/mp')}${sf('costMp', 'Cost construcție €/mp')}${sf('tarifOrar', 'Tarif orar €')}${sf('semnatura', 'Semnătură ofertă')}
+    </div></div></div>
+    <div class="card"><div class="hd">Import / export date</div><div class="bd">
+      <div class="sub">Importă fișierul JSON exportat din versiunea veche (sau un backup). Documentele existente cu același id sunt actualizate.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="impFile" accept="application/json,.json"><button class="btn small" id="impGo">Importă</button><button class="btn small" id="expGo">Descarcă backup JSON</button><span class="sub" id="impMsg"></span></div>
+    </div></div>
+    <div class="card"><div class="hd">Numere de contract</div><div class="bd"><div class="grid">${sf('nextContract.arhideea', 'Următorul nr. – SRL')}${sf('nextContract.bia', 'Următorul nr. – BIA')}</div><div class="sub">Se măresc automat când descarci un contract.</div></div></div>
+  </div><div>
+    <div class="card"><div class="hd">Date BIA Oprea Cristian Daniel (pentru contracte)</div><div class="bd"><div class="grid">
+      ${sf('firme.bia.sediu', 'Sediu')}${sf('firme.bia.cif', 'CIF')}${sf('firme.bia.iban', 'Cont IBAN')}${sf('firme.bia.banca', 'Banca')}
+    </div>${field('Text parte contractantă (opțional, înlocuiește textul generat)', `<textarea data-sp="firme.bia.parte" rows="3">${esc(s.firme.bia.parte || '')}</textarea>`)}${sf('firme.bia.header', 'Antet contract', 'BIA OPREA CRISTIAN DANIEL | Tel. 0721-242312')}</div></div>
+    <div class="card"><div class="hd">Date SC Atelier Arhideea SRL</div><div class="bd"><div class="sub">Folosesc datele din contractele tale (Lămâiței 87, J08/139/2010, RO26478085, cont BT). Le poți înlocui aici:</div>
+    ${field('Text parte contractantă (opțional)', `<textarea data-sp="firme.arhideea.parte" rows="3">${esc(s.firme.arhideea.parte || '')}</textarea>`)}${sf('firme.arhideea.header', 'Antet contract', 'SC ATELIER ARHIDEEA SRL | J08/139/2010 | CUI 26478085 Tel. 0721-242312')}</div></div>
+  </div></div>`;
+  $('#impGo').onclick = async () => { const f = $('#impFile').files[0]; if (!f) return; $('#impMsg').textContent = 'Import…'; try { const data = JSON.parse(await f.text()); const r = await api('POST', 'import', data); $('#impMsg').textContent = 'Importate: ' + r.count + ' documente. Reîncarc…'; setTimeout(() => location.reload(), 1200); } catch (e) { $('#impMsg').textContent = 'Eroare: ' + e.message; } };
+  $('#expGo').onclick = async () => { try { const data = await api('GET', 'export'); await save('Backup CRM Arhideea ' + todayIso() + '.json', new Blob([JSON.stringify(data)], { type: 'application/json' })); } catch (e) { toast('Eroare: ' + e.message); } };
+  let t = null;
+  $('#main').oninput = $('#main').onchange = (e) => { const p = e.target.dataset.sp; if (!p) return; const ns = clean({ ...DEF_SETTINGS, ...S.settings }); let v = e.target.value; if (/^(tarif|costMp|nextContract)/.test(p)) v = L.n(v); setPath(ns, p, v); S.settings = ns; clearTimeout(t); t = setTimeout(() => write('settings', 'main', ns).then(() => ($('#ssaved') && ($('#ssaved').textContent = 'Salvat'))), 600); };
+}
+
+/* ---------------- SEARCH ---------------- */
+const q = $('#q'), res = $('#results');
+q.addEventListener('input', () => {
+  const s = norm(q.value.trim()); if (s.length < 2) { res.hidden = true; return; }
+  const words = s.split(/\s+/);
+  const hit = (txt) => { const n = norm(txt); return words.every((w) => n.includes(w)); };
+  const offs = [...S.offers.values()].filter((o) => hit([o.clientNume, o.localitate, o.obiectiv, o.adresa, o.nr, o.excelSheet, o.noteInterne, o.contract?.nr, o.contract?.ben?.nume].join(' '))).slice(0, 8);
+  const cls = [...S.clients.values()].filter((c) => hit([c.nume, c.localitate, c.tel, c.email, c.adresa].join(' '))).slice(0, 6);
+  const regs = S.registru.filter((r) => hit([r.beneficiar, r.obiect, r.adresa, r.nrProiect].join(' '))).slice(0, 6);
+  let h = '';
+  if (offs.length) h += '<div class="grp">Oferte</div>' + offs.map((o) => `<a href="#o-${o.id}"><span><b>${esc(o.clientNume)}</b> · ${esc(o.obiectiv)}</span><span>${esc(o.localitate)} · ${L.eur(L.totals(o).prestator)}</span></a>`).join('');
+  if (cls.length) h += '<div class="grp">Clienți</div>' + cls.map((c) => `<a href="#c-${c.id}"><span><b>${esc(c.nume)}</b></span><span>${esc(c.localitate)}</span></a>`).join('');
+  if (regs.length) h += '<div class="grp">Registru proiecte</div>' + regs.map((r) => `<a data-reg="${esc(r.beneficiar)}"><span><b>${esc(r.beneficiar)}</b> · ${esc(r.obiect)}</span><span>${esc(r.nrProiect)}</span></a>`).join('');
+  res.innerHTML = h || '<div class="grp">Niciun rezultat</div>'; res.hidden = false;
+});
+res.addEventListener('click', (e) => { const a = e.target.closest('a'); if (!a) return; if (a.dataset.reg) { S.regQ = a.dataset.reg; go('registru'); } res.hidden = true; q.value = ''; });
+document.addEventListener('click', (e) => { if (!e.target.closest('.search')) res.hidden = true; });
+q.addEventListener('keydown', (e) => { if (e.key === 'Escape') { res.hidden = true; q.blur(); } if (e.key === 'Enter') { const a = res.querySelector('a'); a && a.click(); } });
+
+/* ---------------- EXCEL BACKUP ---------------- */
+$('#btnExport').onclick = async () => {
+  if (S.view === 'oferta') flushSave();
+  try {
+    const wb = XLSX.utils.book_new();
+    const offers = [...S.offers.values()].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const rows = offers.map((o) => { const t = L.totals(o); const paid = paidFor((p) => p.offerId === o.id); return {
+      'Nr. înreg.': o.nr, 'Data': L.dataRo(o.data), 'Client': o.clientNume, 'Obiectiv': o.obiectiv, 'Localitate': o.localitate, 'Adresă': o.adresa,
+      'Firmă': o.firma === 'arhideea' ? 'SRL' : 'BIA', 'Tip': tipLbl[o.tip], 'Status': o.status, 'mp ofertat': t.mp || '', 'Arhitectură ofertat €': L.round2(t.arh || t.prestator),
+      'Releveu €': L.round2(t.rel || 0), 'Expertiză €': L.round2(t.exp || 0), 'Rezistență €': L.round2(t.rez || 0), 'Instalații €': L.round2(t.inst || 0), 'Total ofertă €': L.round2(t.total),
+      'Investiție €': L.round2(t.inv || 0), 'mp final': o.final ? L.calcZone(o.final.zone).mp : '', 'Arhitectură final €': o.final ? L.round2(L.arhFinal(o)) : '',
+      'Nr. contract': o.contract?.nr || '', 'Data contract': L.dataRo(o.contract?.data), 'Încasat €': L.round2(paid), 'Sursa': o.sursa === 'excel' ? 'Excel: ' + o.excelSheet : 'aplicație', 'Note interne': o.noteInterne || '', 'Note Excel': o.notaExcel || '' }; });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Oferte');
+    const z = [];
+    offers.forEach((o) => { (o.zone || []).forEach((r) => o.tip === 'mp' && z.push({ 'Client': o.clientNume, 'Nr. ofertă': o.nr, 'Calcul': 'ofertat', 'Zonă': r.den, 'mp': r.mp, 'Arh €/mp': r.arh, 'Releveu €/mp': r.rel || 0, 'Expertiză €/mp': r.exp || 0, 'Rez €/mp': r.rez, 'Inst €/mp': r.inst, 'Cost constr. €/mp': r.cost }));
+      (o.final?.zone || []).forEach((r) => z.push({ 'Client': o.clientNume, 'Nr. ofertă': o.nr, 'Calcul': 'final', 'Zonă': r.den, 'mp': r.mp, 'Arh €/mp': r.arh, 'Releveu €/mp': r.rel || 0, 'Expertiză €/mp': r.exp || 0, 'Rez €/mp': r.rez, 'Inst €/mp': r.inst, 'Cost constr. €/mp': r.cost }));
+      (o.ore || []).forEach((r) => o.tip === 'ore' && z.push({ 'Client': o.clientNume, 'Nr. ofertă': o.nr, 'Calcul': 'ore', 'Zonă': r.den, 'mp': '', 'Arh €/mp': '', 'Ore': r.ore, 'Tarif €/oră': r.tarif }));
+      (o.forfetar || []).forEach((r) => o.tip === 'forfetar' && z.push({ 'Client': o.clientNume, 'Nr. ofertă': o.nr, 'Calcul': 'forfetar', 'Zonă': r.den, 'Cost €': r.cost, 'Durată': r.durata })); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(z), 'Calcule detaliate');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([...S.clients.values()].map((c) => { const s = clientStats(c); return { 'Client': c.nume, 'Tip': c.tip, 'Localitate': c.localitate, 'Adresă': c.adresa, 'Telefon': c.tel, 'E-mail': c.email, 'Contractat €': L.round2(s.due), 'Încasat €': L.round2(s.paid), 'Rest €': L.round2(s.rest), 'Note': c.note }; })), 'Clienți');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([...S.payments.values()].sort((a, b) => (a.data || '').localeCompare(b.data || '')).map((p) => ({ 'Data': L.dataRo(p.data), 'Client': S.clients.get(p.clientId)?.nume || '', 'Ofertă': S.offers.get(p.offerId)?.nr || '', 'Sumă': p.suma, 'Monedă': p.moneda, 'Curs': p.curs || '', 'EUR': p.sumaEur, 'Metodă': p.metoda, 'Descriere': p.descriere, 'Factură': p.factura }))), 'Plăți');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(S.registru.map((r) => ({ 'Firmă': r.firma === 'arhideea' ? 'ARHIDEEA' : 'BIA OCD', 'Beneficiar': r.beneficiar, 'Obiect': r.obiect, 'Adresă': r.adresa, 'Nr proiect': r.nrProiect, 'Dovadă OAR': r.dovadaOar, 'Contract': r.contract, 'Ofertat': r.ofertat, 'Încasat': r.incasat, 'Rezistență': r.rez, 'Instalații': r.inst }))), 'Registru');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([...S.cu.values()].flatMap((c) => { const o = S.offers.get(c.offerId); const base = { 'Client': o?.clientNume || '', 'Nr. CU': c.nr, 'Emis': L.dataRo(c.dataEmitere), 'Expiră': L.dataRo(cuExp(c)), 'Scop': c.scop || '' }; return (c.avize || []).length ? c.avize.map((a) => ({ ...base, 'Aviz': a.den, 'Obținut': a.obtinut ? 'da' : 'nu', 'Data': L.dataRo(a.data), 'Nr. aviz': a.nr || '', 'Observații': a.note || '' })) : [base]; })), 'CU și avize');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const today = L.ofertaNoua(sett()).data;
+    await save('Backup oferte Arhideea ' + today + '.xlsx', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  } catch (e) { toast('Eroare la export: ' + e.message, 5000); }
+};
+
+/* ---------------- CU & AVIZE ---------------- */
+const AVIZE_STD = ['Alimentare cu apă', 'Canalizare', 'Alimentare cu energie electrică', 'Gaze naturale', 'Telefonizare', 'Salubritate', 'Securitate la incendiu (ISU)', 'Protecția civilă', 'Sănătatea populației (DSP)', 'Act administrativ / punct de vedere mediu (APM)', 'Direcția Județeană pentru Cultură', 'Studiu geotehnic', 'Ridicare topografică vizată OCPI', 'Aviz administrator drum', 'Aviz gospodărirea apelor', 'Extras de carte funciară actualizat'];
+const todayIso = () => L.ofertaNoua(sett()).data;
+function addMonths(iso, m) { if (!iso || !L.n(m)) return ''; const [y, mo, d] = iso.split('-').map(Number); const dt = new Date(Date.UTC(y, mo - 1 + L.n(m), d)); return dt.toISOString().slice(0, 10); }
+const cuExp = (c) => c.dataExpirare || addMonths(c.dataEmitere, c.valabilitateLuni);
+const daysTo = (iso) => iso ? Math.round((Date.parse(iso + 'T00:00:00Z') - Date.parse(todayIso() + 'T00:00:00Z')) / 86400000) : null;
+function daysPill(iso) { const d = daysTo(iso); if (d == null) return '<span class="sub">fără dată</span>'; const cls = d < 0 ? 'bad' : d <= 30 ? 'bad' : d <= 60 ? 'warn' : 'ok'; return `<span class="days ${cls}">${d < 0 ? 'expirat de ' + -d + ' zile' : d === 0 ? 'expiră azi' : 'încă ' + d + ' zile'}</span>`; }
+function cuFor(offerId) { return [...S.cu.values()].filter((c) => c.offerId === offerId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); }
+const avStat = (c) => { const a = c.avize || []; const ok = a.filter((x) => x.obtinut).length; return { tot: a.length, ok, lipsa: a.filter((x) => !x.obtinut) }; };
+const cuTimers = {};
+function saveCu(c) { S.cu.set(c.id, c); clearTimeout(cuTimers[c.id]); cuTimers[c.id] = setTimeout(() => write('cu', c.id, c), 700); updateBadge(); }
+
+const CU_PROMPT = `Documentul atașat este un Certificat de urbanism (CU) emis în România. Extrage datele în acest format JSON:
+{"nr":"numărul certificatului","dataEmitere":"AAAA-LL-ZZ","valabilitateLuni":număr de luni de valabilitate (convertește din zile/ani dacă e cazul),"dataExpirare":"AAAA-LL-ZZ doar dacă e scrisă explicit, altfel șir gol","emitent":"autoritatea emitentă","solicitant":"","scop":"scopul emiterii / denumirea lucrării","amplasament":"adresa imobilului","cf":"număr carte funciară","nrCad":"număr cadastral sau topografic","regim":"pe scurt, regimul tehnic relevant (POT, CUT, regim de înălțime, retrageri) într-un rând","avize":[{"den":"denumirea avizului / acordului / studiului cerut","categorie":"utilități | mediu | securitate și sănătate | cultură | alte avize | studii | documente"}]}
+În "avize" pune TOATE avizele și acordurile bifate sau cerute (utilități: apă, canalizare, energie electrică, gaze, telefonizare, salubritate; securitate la incendiu, protecție civilă, sănătatea populației; actul autorității de mediu; avize/acorduri specifice; studii de specialitate precum studiu geotehnic, ridicare topografică vizată OCPI; alte documente cerute pentru autorizare). Nu include taxe și nu include elemente nebifate. Pune doar ce scrie în document.`;
+
+async function uploadFile(file) {
+  const fd = new FormData(); fd.append('file', file);
+  return api('POST', 'files', fd, true);
+}
+
+function renderCuCard() {
+  const box = $('#cuBody'); if (!box || !S.draft) return;
+  const d = S.draft; const list = cuFor(d.id);
+  const sum = list[0] ? (() => { const st = avStat(list[0]); return `CU ${esc(list[0].nr || '')} · ${st.ok}/${st.tot} avize`; })() : '';
+  $('#cuSum').textContent = sum;
+  box.innerHTML = `
+  <div class="scanbox"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">Încarcă un certificat de urbanism</b><span class="sub">PDF sau poză; citesc numărul, valabilitatea și avizele cerute</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="cuFile" accept="application/pdf,image/*"><button class="btn small primary" id="cuUp">Încarcă și citește</button><button class="btn small" id="cuManual">Adaugă CU fără fișier</button><span class="sub" id="cuMsg"></span></div></div>
+  ${list.map((c) => cuEditor(c)).join('')}`;
+  bindCu(box);
+}
+function cuEditor(c) {
+  const st = avStat(c); const exp = cuExp(c);
+  const f = (k, lbl, type) => field(lbl, `<input data-cf="${k}" data-cu="${c.id}" ${type ? `type="${type}"` : ''} value="${esc(c[k] ?? '')}">`);
+  return `<div class="cubox" data-cubox="${c.id}">
+    <div class="cuhd"><b>CU ${esc(c.nr || 'fără număr')}${c.dataEmitere ? ' / ' + L.dataRo(c.dataEmitere) : ''}</b> ${daysPill(exp)} <span class="sub">${st.ok} din ${st.tot} avize obținute</span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${c.fileKey ? `<a class="btn small" href="/api/files/${encodeURIComponent(c.fileKey)}" target="_blank" rel="noopener">Deschide ${esc(c.fileName || 'fișierul')}</a><button class="btn small" data-cuai="${c.id}">Recitește</button>` : ''}<button class="btn small" data-cuctr="${c.id}">Preia în contract</button><button class="btn small danger" data-cudel="${c.id}">Șterge</button></span></div>
+    <div class="grid">${f('nr', 'Nr. CU')}${f('dataEmitere', 'Emis la', 'date')}${f('valabilitateLuni', 'Valabil (luni)')}${field('Expiră la' + (c.dataExpirare ? '' : ' (calculat)'), `<input data-cf="dataExpirare" data-cu="${c.id}" type="date" value="${esc(exp)}">`)}${f('emitent', 'Emitent')}</div>
+    <div class="grid">${f('scop', 'Scop / denumirea lucrării')}${f('amplasament', 'Amplasament')}${f('cf', 'Nr. CF')}${f('nrCad', 'Nr. cadastral')}</div>
+    ${c.regim ? `<div class="sub">Regim: ${esc(c.regim)}</div>` : ''}
+    <div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div>
+    <div class="rows"><table class="ed"><thead><tr><th></th><th>Aviz / acord / studiu</th><th style="width:140px">Obținut la</th><th style="width:120px">Nr.</th><th>Observații</th><th></th></tr></thead><tbody>
+      ${(c.avize || []).map((a, i) => `<tr class="${a.obtinut ? 'done' : ''}"><td class="chk"><input type="checkbox" data-av="${c.id}" data-i="${i}" data-k="obtinut" ${a.obtinut ? 'checked' : ''} title="Obținut"></td><td><input data-av="${c.id}" data-i="${i}" data-k="den" value="${esc(a.den)}"></td><td><input type="date" data-av="${c.id}" data-i="${i}" data-k="data" value="${esc(a.data || '')}"></td><td><input data-av="${c.id}" data-i="${i}" data-k="nr" value="${esc(a.nr || '')}"></td><td><input data-av="${c.id}" data-i="${i}" data-k="note" value="${esc(a.note || '')}" placeholder="${esc(a.categorie || '')}"></td><td><button class="x" data-avdel="${c.id}" data-i="${i}" title="Șterge">×</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-avadd="${c.id}">+ Aviz</button><select class="btn small" data-avstd="${c.id}"><option value="">+ din lista uzuală…</option>${AVIZE_STD.map((x) => `<option>${esc(x)}</option>`).join('')}</select></div>
+    ${field('Note CU (prelungire, depuneri etc.)', `<textarea data-cf="note" data-cu="${c.id}" rows="2">${esc(c.note || '')}</textarea>`)}
+  </div>`;
+}
+function bindCu(box) {
+  box.oninput = (e) => {
+    e.stopPropagation(); const el = e.target;
+    if (el.dataset.cf) { const c = S.cu.get(el.dataset.cu); if (!c) return; let v = el.value; if (el.dataset.cf === 'valabilitateLuni') v = L.n(v); c[el.dataset.cf] = v; if (el.dataset.cf === 'valabilitateLuni' || el.dataset.cf === 'dataEmitere') { if (c._expAuto !== false) c.dataExpirare = ''; } if (el.dataset.cf === 'dataExpirare') c._expAuto = false; saveCu(c); }
+    if (el.dataset.av && el.type !== 'checkbox') { const c = S.cu.get(el.dataset.av); c.avize[+el.dataset.i][el.dataset.k] = el.value; saveCu(c); }
+  };
+  box.onchange = (e) => {
+    e.stopPropagation(); const el = e.target;
+    if (el.dataset.av && el.type === 'checkbox') { const c = S.cu.get(el.dataset.av); const a = c.avize[+el.dataset.i]; a.obtinut = el.checked; if (el.checked && !a.data) a.data = todayIso(); saveCu(c); renderCuCard(); }
+    if (el.dataset.avstd && el.value) { const c = S.cu.get(el.dataset.avstd); c.avize = c.avize || []; c.avize.push({ den: el.value, obtinut: false }); saveCu(c); renderCuCard(); }
+    if (el.dataset.cf === 'dataEmitere' || el.dataset.cf === 'valabilitateLuni' || el.dataset.cf === 'dataExpirare') renderCuCard();
+  };
+  box.onclick = async (e) => {
+    const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+    const d = S.draft;
+    if (b.id === 'cuManual') { const c = { id: L.uid('u_'), offerId: d.id, clientId: d.clientId, nr: '', dataEmitere: '', valabilitateLuni: 12, avize: [], createdAt: Date.now() }; saveCu(c); write('cu', c.id, c); renderCuCard(); return; }
+    if (b.id === 'cuUp') {
+      const file = $('#cuFile').files[0]; const msg = $('#cuMsg');
+      if (!file) { msg.textContent = 'Alege întâi fișierul.'; return; }
+      b.disabled = true; msg.textContent = 'Încarc fișierul…';
+      try {
+        const up = await uploadFile(file);
+        const c = { id: L.uid('u_'), offerId: d.id, clientId: d.clientId, fileKey: up.key, fileName: up.name, avize: [], createdAt: Date.now() };
+        S.cu.set(c.id, c); await write('cu', c.id, c); renderCuCard();
+        await readCu(c, $('#cuMsg'));
+      } catch (er) { msg.textContent = 'Nu am reușit: ' + er.message; }
+      b.disabled = false; return;
+    }
+    if (b.dataset.cuai) { await readCu(S.cu.get(b.dataset.cuai), $('#cuMsg')); return; }
+    if (b.dataset.avadd) { const c = S.cu.get(b.dataset.avadd); c.avize = c.avize || []; c.avize.push({ den: '', obtinut: false }); saveCu(c); renderCuCard(); return; }
+    if (b.dataset.avdel) { const c = S.cu.get(b.dataset.avdel); c.avize.splice(+b.dataset.i, 1); saveCu(c); renderCuCard(); return; }
+    if (b.dataset.cuctr) {
+      const c = S.cu.get(b.dataset.cuctr);
+      if (!d.contract) d.contract = { nr: '', data: todayIso(), ben: { tip: 'PF', nume: d.clientNume }, regim: {} };
+      if (c.scop) d.contract.investitie = c.scop; if (c.amplasament) d.contract.amplasament = c.amplasament; if (c.cf) d.contract.cf = c.cf; if (c.nrCad) d.contract.nrCad = c.nrCad;
+      d.contract.cu = [c.nr, c.dataEmitere ? L.dataRo(c.dataEmitere) : ''].filter(Boolean).join(' / ');
+      renderForm(); scheduleSave(); toast('Datele din CU au fost trecute în contract'); return;
+    }
+    if (b.dataset.cudel) {
+      if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; return; }
+      const c = S.cu.get(b.dataset.cudel); S.cu.delete(c.id); remove('cu', c.id); if (c.fileKey) api('DELETE', 'files/' + encodeURIComponent(c.fileKey)).catch(() => {}); renderCuCard(); updateBadge(); return;
+    }
+  };
+}
+async function readCu(c, msg) {
+  if (!c?.fileKey) return;
+  msg.textContent = 'Citesc certificatul… (10–30 secunde)';
+  try {
+    const r = await api('POST', 'ai', { prompt: CU_PROMPT, fileKeys: [c.fileKey] });
+    ['nr', 'dataEmitere', 'emitent', 'solicitant', 'scop', 'amplasament', 'cf', 'nrCad', 'regim'].forEach((k) => { if (r[k]) c[k] = String(r[k]).trim(); });
+    if (L.n(r.valabilitateLuni)) c.valabilitateLuni = L.n(r.valabilitateLuni);
+    if (r.dataExpirare) { c.dataExpirare = r.dataExpirare; c._expAuto = false; }
+    const have = new Set((c.avize || []).map((a) => norm(a.den)));
+    (r.avize || []).forEach((a) => { const den = typeof a === 'string' ? a : a.den; if (den && !have.has(norm(den))) { (c.avize = c.avize || []).push({ den, categorie: a.categorie || '', obtinut: false }); have.add(norm(den)); } });
+    S.cu.set(c.id, c); await write('cu', c.id, c); renderCuCard(); updateBadge();
+    const m = $('#cuMsg'); if (m) m.textContent = `Am citit CU ${c.nr || ''}: ${(c.avize || []).length} avize/documente cerute. Verifică datele.`;
+  } catch (er) { const m = $('#cuMsg'); if (m) m.textContent = 'Nu am putut citi automat: ' + er.message + '. Poți completa manual.'; }
+}
+
+function viewCuList() {
+  const list = [...S.cu.values()].map((c) => ({ c, exp: cuExp(c), st: avStat(c), o: S.offers.get(c.offerId) }));
+  list.sort((a, b) => (a.exp || '9999').localeCompare(b.exp || '9999'));
+  $('#main').innerHTML = `<div class="toolbar"><h2>Certificate de urbanism <span class="sub">${list.length}</span></h2></div>
+  ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Client / obiectiv</th><th>CU</th><th>Expiră</th><th>Avize</th><th>Lipsesc</th></tr></thead><tbody>
+  ${list.map(({ c, exp, st, o }) => `<tr class="click" data-o="${esc(c.offerId)}"><td><b>${esc(o?.clientNume || '—')}</b><div class="sub">${esc(o?.obiectiv || c.scop || '')}</div></td><td class="num">${esc(c.nr || '—')}<div class="sub">${esc(L.dataRo(c.dataEmitere))}</div></td><td>${daysPill(exp)}<div class="sub num">${esc(L.dataRo(exp))}</div></td><td><div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div><div class="sub">${st.ok} din ${st.tot}</div></td><td class="sub">${esc(st.lipsa.slice(0, 4).map((a) => a.den).join(', '))}${st.lipsa.length > 4 ? ' …' : ''}</td></tr>`).join('')}
+  </tbody></table></div>` : `<div class="empty">Niciun certificat de urbanism încă. Îl încarci din ofertă, în secțiunea „Certificat de urbanism și avize”.</div>`}`;
+  $$('tr.click').forEach((r) => (r.onclick = () => S.offers.has(r.dataset.o) && go('oferta', r.dataset.o)));
+}
+
+/* ---------------- DASHBOARD ---------------- */
+function alerts() {
+  const out = [];
+  S.cu.forEach((c) => {
+    const o = S.offers.get(c.offerId); const who = esc(o?.clientNume || 'Client'); const exp = cuExp(c); const d = daysTo(exp); const st = avStat(c);
+    if (d != null && d <= 60) out.push({ sev: d <= 30 ? 'bad' : 'warn', rank: d, href: '#o-' + c.offerId, html: `<b>${who}</b> · CU ${esc(c.nr || '')} ${d < 0 ? 'a expirat acum ' + -d + ' zile' : 'expiră în ' + d + ' zile'} (${esc(L.dataRo(exp))})${st.lipsa.length ? ` · încă ${st.lipsa.length} avize lipsă` : ''}` });
+    if ((d == null || d > 60) && st.lipsa.length) out.push({ sev: 'info', rank: 500 + st.lipsa.length, href: '#o-' + c.offerId, html: `<b>${who}</b> · ${st.ok} din ${st.tot} avize obținute; lipsesc: ${esc(st.lipsa.slice(0, 3).map((a) => a.den).join(', '))}${st.lipsa.length > 3 ? ' …' : ''}` });
+  });
+  S.offers.forEach((o) => {
+    if (o.status === 'trimisă') { const d = -daysTo(o.data); if (d >= 14) out.push({ sev: 'warn', rank: 200 - Math.min(d, 199), href: '#o-' + o.id, html: `<b>${esc(o.clientNume)}</b> · oferta trimisă acum ${d} zile, fără răspuns (${L.eur(L.totals(o).prestator)})` }); }
+  });
+  S.clients.forEach((c) => { const s = clientStats(c); if (s.contracted.length && s.rest > 0.5) out.push({ sev: 'info', rank: 1000 - Math.min(s.rest / 100, 999), href: '#c-' + c.id, html: `<b>${esc(c.nume)}</b> · rest de încasat ${L.eur(s.rest)} din ${L.eur(s.due)}` }); });
+  const ord = { bad: 0, warn: 1, info: 2 };
+  return out.sort((a, b) => ord[a.sev] - ord[b.sev] || a.rank - b.rank);
+}
+function updateBadge() { const el = $('#alertBadge'); if (!el || !S.ready) return; const n = alerts().filter((a) => a.sev !== 'info').length; el.innerHTML = n ? `<span class="badge">${n}</span>` : ''; }
+function viewDashboard() {
+  const al = alerts();
+  const offers = [...S.offers.values()];
+  const waiting = offers.filter((o) => o.status === 'trimisă');
+  const active = offers.filter((o) => ['contractată', 'în lucru'].includes(o.status));
+  const rest = [...S.clients.values()].reduce((s, c) => s + Math.max(0, clientStats(c).rest), 0);
+  const cuSoon = [...S.cu.values()].filter((c) => { const d = daysTo(cuExp(c)); return d != null && d <= 60; }).length;
+  const year = todayIso().slice(0, 4);
+  const paidYear = paidFor((p) => (p.data || '').startsWith(year));
+  const recent = offers.filter((o) => o.sursa !== 'excel' || o.status !== 'arhivă').sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 6);
+  $('#main').innerHTML = `<div class="toolbar"><h2>Panou</h2><span class="sub">${esc(L.dataLunga(todayIso()))}</span></div>
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Oferte în așteptare</div><div class="val">${waiting.length}</div><div class="sub">${L.eur(waiting.reduce((s, o) => s + L.totals(o).prestator, 0))}</div></div>
+    <div class="kpi"><div class="lbl">Contracte active</div><div class="val">${active.length}</div></div>
+    <div class="kpi ok"><div class="lbl">Încasat în ${year}</div><div class="val">${L.eur(paidYear)}</div></div>
+    <div class="kpi ${rest > 0.5 ? 'bad' : ''}"><div class="lbl">Rest de încasat</div><div class="val">${L.eur(rest)}</div></div>
+    <div class="kpi ${cuSoon ? 'bad' : ''}"><div class="lbl">CU care expiră în 60 de zile</div><div class="val">${cuSoon}</div></div>
+  </div>
+  <div class="split">
+    <div class="card"><div class="hd">De rezolvat <span class="sub" style="margin-left:auto;font-family:var(--f-ui);font-weight:400">${al.length}</span></div>
+      <div>${al.length ? al.slice(0, 25).map((a) => `<a class="alert ${a.sev}" href="${a.href}"><span class="dot"></span><span>${a.html}</span></a>`).join('') : '<div class="empty">Nimic urgent. Când încarci un CU sau trimiți oferte, aici apar termenele și avizele care lipsesc.</div>'}</div></div>
+    <div class="card"><div class="hd">Lucrate recent</div><div>${recent.length ? recent.map((o) => `<a class="alert" href="#o-${o.id}"><span class="dot"></span><span><b>${esc(o.clientNume || 'Ofertă nouă')}</b> · ${esc(o.obiectiv)} · ${L.eur(L.totals(o).prestator)} ${pill(o.status)}</span></a>`).join('') : '<div class="empty">Încă nimic lucrat aici. Apasă „+ Ofertă nouă”.</div>'}</div>
+      <div class="bd"><button class="btn primary" onclick="document.getElementById('btnNew').click()">+ Ofertă nouă</button></div></div>
+  </div>`;
+}
+
+/* ---------------- CLIENT DOCUMENTS ---------------- */
+function clientDocsCard(c) {
+  const docs = c.docs || [];
+  return `<div class="card"><div class="hd">Documente client</div><div class="bd">
+    ${docs.length ? docs.map((f, i) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><a href="/api/files/${encodeURIComponent(f.key)}" target="_blank" rel="noopener">${esc(f.name)}</a><span class="sub">${esc(L.dataRo(f.at))}</span><button class="x" data-docdel="${i}" title="Șterge">×</button></div>`).join('') : '<div class="sub">Buletin, extras CF, acte de proprietate… se păstrează aici, legate de client.</div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="docFile" multiple><button class="btn small" id="docUp">Încarcă</button><span class="sub" id="docMsg"></span></div>
+  </div></div>`;
+}
+function bindClientDocs(c) {
+  const up = $('#docUp'); if (!up) return;
+  up.onclick = async () => {
+    const files = [...$('#docFile').files]; if (!files.length) return;
+    $('#docMsg').textContent = 'Încarc…';
+    try { for (const f of files) { const r = await uploadFile(f); (c.docs = c.docs || []).push({ key: r.key, name: r.name, type: r.type, at: todayIso() }); } await write('clients', c.id, c); viewClient(); toast('Documente încărcate'); }
+    catch (e) { $('#docMsg').textContent = 'Nu am reușit: ' + e.message; }
+  };
+  $$('[data-docdel]').forEach((b) => (b.onclick = () => { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'șterge?'; b.style.fontSize = '12px'; return; } const f = c.docs.splice(+b.dataset.docdel, 1)[0]; write('clients', c.id, c); if (f) api('DELETE', 'files/' + encodeURIComponent(f.key)).catch(() => {}); viewClient(); }));
+}
+
+
+boot();
+})();
+</script>
+</body>
+</html>
