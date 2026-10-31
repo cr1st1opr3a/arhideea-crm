@@ -148,7 +148,16 @@
     const estim = [];
     if (isMp) {
       const z1 = (o.zone || [])[0];
-      estim.push('Suprafata de cca ' + L.fmt(t.mp) + ' mp ( suprafata desfasurata ' + String(o.obiectiv || '').toLowerCase() + ')');
+      const zs = (o.zone || []).filter((z) => n(z.mp) > 0);
+      zs.forEach((z, i) => {
+        const den = String(z.den || '').trim();
+        const generic = /^(casa\s+)?zona\s*\d+$/i.test(den) || !den;
+        let what;
+        if (generic && i === 0) what = 'suprafata desfasurata ' + String(o.obiectiv || 'constructie').toLowerCase() + ' – zona 1';
+        else if (generic) what = 'zona ' + (i + 1) + ' – terase acoperite, logii, garaje';
+        else what = 'suprafata desfasurata ' + den.toLowerCase();
+        estim.push((i === 0 ? 'Suprafata de cca ' : 'cca ') + L.fmt(z.mp) + ' mp ( ' + what + ')');
+      });
       if (z1 && n(z1.cost)) estim.push('costul / mp al constructiei (finalizata, fara mobilier, racorduri, imprejmuire ) ' + L.fmt(z1.cost) + ' euro (fara TVA)');
     }
     lines(o.estimari).forEach((x) => estim.push(x));
