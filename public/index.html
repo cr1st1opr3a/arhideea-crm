@@ -227,10 +227,25 @@ function write(col, id, data) {
 function remove(col, id) { return S.db.collection(col).doc(id).delete().catch((e) => toast('Nu am putut șterge: ' + (e.message || e.code))); }
 
 /* ---- server API (Cloudflare Pages Functions + D1 + KV) ---- */
+function sessionExpired() {
+  if ($('#sessBar')) return;
+  const d = document.createElement('div'); d.id = 'sessBar';
+  d.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:999;background:#b42318;color:#fff;padding:10px 16px;font-weight:600;text-align:center';
+  d.innerHTML = 'Sesiunea a expirat. <button class="btn small" style="margin-left:8px" onclick="location.reload()">Reîncarcă și autentifică-te</button>';
+  document.body.appendChild(d);
+}
 async function api(method, path, body, isForm) {
   const opt = { method, headers: { 'x-crm': '1' }, credentials: 'same-origin' };
   if (body !== undefined) { if (isForm) opt.body = body; else { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); } }
-  const r = await fetch('/api/' + path, opt);
+  let r;
+  try { r = await fetch('/api/' + path, opt); }
+  catch (e) {
+    // De obicei: sesiunea Cloudflare Access a expirat și cererea a fost redirecționată spre pagina de login.
+    let expired = false;
+    try { const t = await fetch('/api/me', { credentials: 'same-origin', redirect: 'manual', cache: 'no-store' }); expired = t.type === 'opaqueredirect' || t.status === 401 || t.status === 0; } catch (e2) { expired = true; }
+    if (expired) { sessionExpired(); throw new Error('Sesiunea de autentificare a expirat. Reîncarcă pagina, autentifică-te și încearcă din nou.'); }
+    throw new Error('Nu am putut contacta serverul (' + e.message + '). Verifică internetul și încearcă din nou.');
+  }
   if (r.status === 401 || (r.status === 403 && method === 'GET' && path === 'me')) { location.reload(); throw new Error('Sesiunea a expirat'); }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }

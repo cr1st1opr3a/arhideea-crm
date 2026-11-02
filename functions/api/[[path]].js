@@ -9,7 +9,10 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), { status
 const err = (msg, status = 400) => json({ error: msg }, status);
 const okId = (s) => typeof s === 'string' && /^[A-Za-z0-9_\-.:@+~]{1,120}$/.test(s);
 
+import { Buffer } from 'node:buffer';
+
 function toB64(buf) {
+  try { return Buffer.from(buf).toString('base64'); } catch (e) { /* fallback mai jos */ }
   const bytes = new Uint8Array(buf);
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
