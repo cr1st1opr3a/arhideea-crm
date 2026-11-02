@@ -71,6 +71,7 @@ main{padding-block:18px 60px}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 table.list{width:100%;border-collapse:collapse;font-size:13px}
+[data-kpi]{cursor:pointer;transition:border-color .15s}[data-kpi]:hover{border-color:var(--ink,#555)}[data-kpi].sel{outline:2px solid var(--accent,#2b5a9e);outline-offset:-2px}
 table.list th{cursor:pointer;user-select:none;text-align:left;font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--line);background:var(--sunk);position:sticky;top:0}
 table.list td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 table.list tr.click{cursor:pointer}
@@ -1164,18 +1165,73 @@ function viewDashboard() {
   const recent = offers.filter((o) => o.sursa !== 'excel' || o.status !== 'arhivă').sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 6);
   $('#main').innerHTML = `<div class="toolbar"><h2>Panou</h2><span class="sub">${esc(L.dataLunga(todayIso()))}</span></div>
   <div class="kpis">
-    <div class="kpi"><div class="lbl">Oferte în așteptare</div><div class="val">${waiting.length}</div><div class="sub">${L.eur(waiting.reduce((s, o) => s + L.totals(o).prestator, 0))}</div></div>
-    <div class="kpi"><div class="lbl">Contracte active</div><div class="val">${active.length}</div></div>
-    <div class="kpi ok"><div class="lbl">Încasat în ${year}</div><div class="val">${L.eur(paidYear)}</div></div>
-    <div class="kpi ${rest > 0.5 ? 'bad' : ''}"><div class="lbl">De încasat acum</div><div class="val">${L.eur(rest)}</div></div>
-    <div class="kpi ${cuSoon ? 'bad' : ''}"><div class="lbl">CU care expiră în 60 de zile</div><div class="val">${cuSoon}</div></div>
+    <div class="kpi" data-kpi="wait"><div class="lbl">Oferte în așteptare</div><div class="val">${waiting.length}</div><div class="sub">${L.eur(waiting.reduce((s, o) => s + L.totals(o).prestator, 0))}</div></div>
+    <div class="kpi" data-kpi="active"><div class="lbl">Contracte active</div><div class="val">${active.length}</div></div>
+    <div class="kpi ok" data-kpi="paid"><div class="lbl">Încasat în ${year}</div><div class="val">${L.eur(paidYear)}</div></div>
+    <div class="kpi ${rest > 0.5 ? 'bad' : ''}" data-kpi="now"><div class="lbl">De încasat acum</div><div class="val">${L.eur(rest)}</div></div>
+    <div class="kpi ${cuSoon ? 'bad' : ''}" data-kpi="cu"><div class="lbl">CU care expiră în 60 de zile</div><div class="val">${cuSoon}</div></div>
   </div>
+  <div id="kpiDet">${S.kpiOpen ? kpiDetail(S.kpiOpen) : ''}</div>
   <div class="split">
     <div class="card"><div class="hd">De rezolvat <span class="sub" style="margin-left:auto;font-family:var(--f-ui);font-weight:400">${al.length}</span></div>
       <div>${al.length ? al.slice(0, 25).map((a) => `<a class="alert ${a.sev}" href="${a.href}"><span class="dot"></span><span>${a.html}</span></a>`).join('') : '<div class="empty">Nimic urgent. Când încarci un CU sau trimiți oferte, aici apar termenele și avizele care lipsesc.</div>'}</div></div>
     <div class="card"><div class="hd">Lucrate recent</div><div>${recent.length ? recent.map((o) => `<a class="alert" href="#o-${o.id}"><span class="dot"></span><span><b>${esc(o.clientNume || 'Ofertă nouă')}</b> · ${esc(o.obiectiv)} · ${L.eur(L.totals(o).prestator)} ${pill(o.status)}</span></a>`).join('') : '<div class="empty">Încă nimic lucrat aici. Apasă „+ Ofertă nouă”.</div>'}</div>
       <div class="bd"><button class="btn primary" onclick="document.getElementById('btnNew').click()">+ Ofertă nouă</button></div></div>
   </div>`;
+  const mark = () => $$('[data-kpi]').forEach((k) => k.classList.toggle('sel', k.dataset.kpi === S.kpiOpen));
+  $$('[data-kpi]').forEach((k) => (k.onclick = () => { S.kpiOpen = S.kpiOpen === k.dataset.kpi ? '' : k.dataset.kpi; $('#kpiDet').innerHTML = S.kpiOpen ? kpiDetail(S.kpiOpen) : ''; mark(); bindKpiDet(); }));
+  mark(); bindKpiDet();
+}
+function bindKpiDet() {
+  $$('#kpiDet tr[data-href]').forEach((r) => (r.onclick = (e) => { if (e.target.closest('a')) return; location.hash = r.dataset.href; }));
+  const x = $('#kpiClose'); if (x) x.onclick = () => { S.kpiOpen = ''; $('#kpiDet').innerHTML = ''; $$('[data-kpi]').forEach((k) => k.classList.remove('sel')); };
+}
+function kpiDetail(k) {
+  const offers = [...S.offers.values()]; const year = todayIso().slice(0, 4);
+  const box = (title, note, head, rows, foot) => `<div class="card" style="margin-bottom:14px"><div class="hd">${title}<button class="x" id="kpiClose" style="margin-left:auto" title="Închide">×</button></div><div class="bd">${note ? `<div class="sub" style="margin-bottom:8px">${note}</div>` : ''}
+    ${rows.length ? `<div class="tablebox"><table class="list"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody>${foot ? `<tfoot>${foot}</tfoot>` : ''}</table></div>` : '<div class="empty">Nimic aici.</div>'}</div></div>`;
+  const cl = (o) => `<b>${esc(o.clientNume || '—')}</b><div class="sub">${esc(o.anexa ? 'Anexa ' + String(o.anexa.nr).padStart(2, '0') + (o.anexa.obiect ? ' – ' + o.anexa.obiect : '') : [o.obiectiv, o.localitate].filter(Boolean).join(' · '))}</div>`;
+  const tr = (href, cells) => `<tr class="click" data-href="${href}">${cells}</tr>`;
+  if (k === 'wait') {
+    const l = offers.filter((o) => o.status === 'trimisă').sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+    const tot = l.reduce((s, o) => s + L.totals(o).prestator, 0);
+    return box('Oferte în așteptare', 'Oferte cu status „trimisă”. Suma = onorariul de arhitectură ofertat (fără colaboratori).', '<th>Client / obiectiv</th><th>Trimisă la</th><th class="n">Zile</th><th class="n">Arhitectură ofertată</th>',
+      l.map((o) => tr('o-' + o.id, `<td>${cl(o)}</td><td class="num">${L.dataRo(o.data)}</td><td class="n">${o.data ? -daysTo(o.data) : '—'}</td><td class="n">${L.eur(L.totals(o).prestator)}</td>`)),
+      `<tr><td colspan="3" class="sub">Total</td><td class="n"><b>${L.eur(tot)}</b></td></tr>`);
+  }
+  if (k === 'active') {
+    const l = offers.filter((o) => ['contractată', 'în lucru'].includes(o.status)).map((o) => ({ o, f: fin(o) })).sort((a, b) => b.f.rest - a.f.rest);
+    const t = l.reduce((a, { f }) => ({ due: a.due + f.due, paid: a.paid + f.paid, now: a.now + f.now, rest: a.rest + f.rest }), { due: 0, paid: 0, now: 0, rest: 0 });
+    return box('Contracte active', 'Oferte cu status „contractată” sau „în lucru”, inclusiv anexele la contractele-cadru. Contractele marcate „vechi (istoric)” nu intră în sold.', '<th>Client / obiectiv</th><th>Contract</th><th class="n">Valoare</th><th class="n">Realizat</th><th class="n">Încasat</th><th class="n">De încasat acum</th><th class="n">Rest contract</th>',
+      l.map(({ o, f }) => tr('o-' + o.id, `<td>${cl(o)}</td><td class="num">${esc(o.contract?.nr || (o.anexa ? 'cadru ' + (S.clients.get(o.clientId)?.cadru?.nr || '') : '—'))}${o.contract?.istoric ? '<div class="sub">istoric</div>' : ''}</td><td class="n" data-v="${f.due}">${L.eur(f.due)}</td><td class="n" data-v="${f.pr ?? -1}">${f.pr == null ? '<span class="sub">nesetat</span>' : L.fmt(f.pr) + '%'}</td><td class="n" data-v="${f.paid}">${L.eur(f.paid)}</td><td class="n" data-v="${f.now}" style="color:${f.now > 0.5 ? 'var(--bad)' : 'inherit'}">${L.eur(f.now)}</td><td class="n" data-v="${f.rest}">${L.eur(f.rest)}</td>`)),
+      `<tr><td colspan="2" class="sub">Total</td><td class="n"><b>${L.eur(t.due)}</b></td><td></td><td class="n"><b>${L.eur(t.paid)}</b></td><td class="n"><b>${L.eur(t.now)}</b></td><td class="n"><b>${L.eur(t.rest)}</b></td></tr>`);
+  }
+  if (k === 'paid') {
+    const l = [...S.payments.values()].filter((p) => (p.data || '').startsWith(year)).sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const tot = l.reduce((s, p) => s + L.n(p.sumaEur), 0);
+    const byM = {}; l.forEach((p) => { const m = (p.data || '').slice(5, 7); byM[m] = (byM[m] || 0) + L.n(p.sumaEur); });
+    const LUNI = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'noi', 'dec'];
+    const months = Object.keys(byM).sort().map((m) => `<span class="tag" style="margin:0 6px 6px 0;display:inline-block">${LUNI[+m - 1]}: ${L.eur(byM[m])}</span>`).join('');
+    return box('Încasat în ' + year, `Toate plățile înregistrate în ${year}, în EUR fără TVA (plățile în lei la cursul introdus). <div style="margin-top:6px">${months}</div>`, '<th>Data</th><th>Client</th><th>Ofertă / anexă</th><th class="n">Sumă</th><th class="n">EUR</th><th>Factura</th>',
+      l.map((p) => { const o = S.offers.get(p.offerId); const c = S.clients.get(p.clientId); return tr(o ? 'o-' + o.id : c ? 'c-' + c.id : 'plati', `<td class="num">${L.dataRo(p.data)}</td><td><b>${esc(c?.nume || o?.clientNume || '—')}</b></td><td class="sub">${o ? esc(o.anexa ? 'Anexa ' + String(o.anexa.nr).padStart(2, '0') : o.obiectiv || '') : 'neasociată'}</td><td class="n">${L.fmt(p.suma, 2)} ${p.moneda === 'RON' ? 'lei' : '€'}</td><td class="n" data-v="${L.n(p.sumaEur)}">${L.eur(p.sumaEur)}</td><td class="sub">${esc(p.factura || '')}</td>`); }),
+      `<tr><td colspan="4" class="sub">Total</td><td class="n"><b>${L.eur(tot)}</b></td><td></td></tr>`);
+  }
+  if (k === 'now') {
+    const all = offers.map((o) => ({ o, f: fin(o) })).filter(({ f }) => f.contr && f.due > 0.5);
+    const l = all.filter(({ f }) => f.now > 0.5).sort((a, b) => b.f.now - a.f.now);
+    const noPr = all.filter(({ f }) => f.pr == null && f.rest > 0.5);
+    const tot = l.reduce((s, x) => s + x.f.now, 0);
+    return box('De încasat acum', `Pentru fiecare contract: valoare × procentul realizat − încasat. ${noPr.length ? `<b>${noPr.length} contracte nu au progresul setat</b> și nu intră în sumă: ${noPr.map(({ o }) => `<a href="#o-${o.id}">${esc(o.clientNume)}</a>`).join(', ')}.` : ''}`,
+      '<th>Client / obiectiv</th><th class="n">Valoare</th><th class="n">Realizat</th><th class="n">Exigibil</th><th class="n">Încasat</th><th class="n">De încasat acum</th>',
+      l.map(({ o, f }) => tr('o-' + o.id, `<td>${cl(o)}</td><td class="n" data-v="${f.due}">${L.eur(f.due)}</td><td class="n" data-v="${f.pr}">${L.fmt(f.pr)}%</td><td class="n" data-v="${f.earned}">${L.eur(f.earned)}</td><td class="n" data-v="${f.paid}">${L.eur(f.paid)}</td><td class="n" data-v="${f.now}" style="color:var(--bad)"><b>${L.eur(f.now)}</b></td>`)),
+      `<tr><td colspan="5" class="sub">Total</td><td class="n"><b>${L.eur(tot)}</b></td></tr>`);
+  }
+  if (k === 'cu') {
+    const l = [...S.cu.values()].map((c) => ({ c, exp: cuExp(c), st: avStat(c), o: S.offers.get(c.offerId) })).filter((x) => { const d = daysTo(x.exp); return d != null && d <= 60; }).sort((a, b) => (a.exp || '').localeCompare(b.exp || ''));
+    return box('CU care expiră în 60 de zile', 'Inclusiv cele deja expirate. Dacă un CU a fost prelungit, folosește „↻ CU prelungit” în ofertă.', '<th>Client</th><th>CU</th><th>Expiră</th><th>Avize</th><th>Lipsesc</th>',
+      l.map(({ c, exp, st, o }) => tr('o-' + c.offerId, `<td><b>${esc(o?.clientNume || '—')}</b><div class="sub">${esc(o?.obiectiv || c.scop || '')}</div></td><td class="num">${esc(c.nr || '—')}<div class="sub">${esc(L.dataRo(c.dataEmitere))}</div></td><td>${daysPill(exp)}<div class="sub num">${esc(L.dataRo(exp))}</div></td><td class="num">${st.ok}/${st.tot}</td><td class="sub">${st.lipsa.map((a) => esc(a.den)).join(', ')}</td>`)));
+  }
+  return '';
 }
 
 /* ---------------- CLIENT DOCUMENTS ---------------- */
