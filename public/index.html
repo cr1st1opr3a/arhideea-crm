@@ -311,17 +311,17 @@ function route() {
   const h = (location.hash || '').slice(1);
   if (h.startsWith('o-') && S.offers.has(h.slice(2))) { S.view = 'oferta'; S.curId = h.slice(2); }
   else if (h.startsWith('c-') && S.clients.has(h.slice(2))) { S.view = 'client'; S.clientId = h.slice(2); }
-  else if (['panou', 'oferte', 'cu', 'clienti', 'plati', 'registru', 'setari'].includes(h)) S.view = h;
+  else if (['panou', 'oferte', 'cu', 'clienti', 'plati', 'registru', 'setari', 'verificare'].includes(h)) S.view = h;
   render(); window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { if (S.ready) route(); });
 
 function render() {
   if (!S.ready) return;
-  const tab = S.view === 'oferta' ? 'oferte' : S.view === 'client' ? 'clienti' : S.view;
+  const tab = S.view === 'oferta' ? 'oferte' : (S.view === 'client' || S.view === 'verificare') ? 'clienti' : S.view;
   $$('#tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.v === tab ? 'true' : 'false'));
   updateBadge();
-  ({ panou: viewDashboard, cu: viewCuList, oferte: viewOffers, clienti: viewClients, client: viewClient, plati: viewPayments, registru: viewRegistry, setari: viewSettings, oferta: viewEditor })[S.view]();
+  ({ panou: viewDashboard, cu: viewCuList, oferte: viewOffers, clienti: viewClients, client: viewClient, plati: viewPayments, registru: viewRegistry, setari: viewSettings, oferta: viewEditor, verificare: viewCheck })[S.view]();
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });
 
@@ -396,9 +396,8 @@ function flushSave() {
   if (d.clientNume) {
     let c = d.clientId && S.clients.get(d.clientId);
     if (!c || norm(c.nume) !== norm(d.clientNume)) {
-      c = [...S.clients.values()].find((x) => norm(x.nume) === norm(d.clientNume));
-      if (!c) { c = { id: L.uid('c_'), nume: d.clientNume, tip: 'PF', localitate: d.localitate || '', adresa: '', tel: '', email: '', note: '', sursa: 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); }
-      d.clientId = c.id;
+      c = [...S.clients.values()].find((x) => norm(x.nume).trim() === norm(d.clientNume).trim());
+      d.clientId = c ? c.id : ''; // clientul nou se creează doar explicit (butonul de sub câmp)
     }
   }
   S.offers.set(d.id, clean(d));
@@ -446,7 +445,7 @@ function renderForm() {
   </div></details>` : ''}
   <details class="card" data-k="gen" ${op('gen', !d.anexa)}><summary>Date generale <span class="sub">${esc(d.nr || '')}</span></summary><div class="bd">
     <div class="grid">
-      ${field('Client', inp('clientNume', { list: 'dlClients', ph: 'Nume beneficiar / firmă' }))}
+      <div class="fld" style="grid-column:span 1">${field('Client', inp('clientNume', { list: 'dlClients', ph: 'Nume beneficiar / firmă' }))}<div id="clHint" class="sub" style="margin-top:4px"></div></div>
       ${field('Obiectiv', inp('obiectiv', { ph: 'ex. Locuință unifamilială' }))}
       ${field('Localitate', inp('localitate', { list: 'dlLoc' }))}
       ${field('Adresă / zonă', inp('adresa', { ph: 'stradă, nr., cartier' }))}
@@ -503,7 +502,7 @@ function renderForm() {
     ${d.notaExcel ? `<div><div class="sub" style="margin-bottom:4px">Ce era lângă calcul în foaia Excel „${esc(d.excelSheet)}” (plăți, observații):</div><div class="note-box">${esc(d.notaExcel)}</div></div>` : ''}
     ${d.fisierOferta ? `<div class="sub">Fișier ofertă găsit în folder: <span class="num">${esc(d.fisierOferta)}</span></div>` : ''}
   </div></details>`;
-  title(); renderOfferPayments(); renderCuCard(); bindForm();
+  title(); renderOfferPayments(); renderCuCard(); bindForm(); clientHint();
 }
 
 function zonesEditor(path, full) {
@@ -568,6 +567,27 @@ function contractEditor() {
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
 }
 
+function clientHint() {
+  const box = $('#clHint'); const d = S.draft; if (!box || !d) return;
+  const name = (d.clientNume || '').trim();
+  const linked = d.clientId && S.clients.get(d.clientId);
+  if (linked && norm(linked.nume).trim() === norm(name)) { box.innerHTML = `✓ legat de clientul <a href="#c-${linked.id}">${esc(linked.nume)}</a>`; return; }
+  if (!name) { box.innerHTML = 'Scrie numele și alege clientul din listă.'; return; }
+  const probe = { nume: name };
+  const sim = [...S.clients.values()].filter((c) => norm(c.nume).includes(norm(name)) || sameClient(probe, c)).slice(0, 4);
+  const regs = S.registru.filter((r, i, arr) => sameClient(probe, { nume: r.beneficiar }) && arr.findIndex((x) => norm(x.beneficiar) === norm(r.beneficiar)) === i && !sim.some((c) => norm(c.nume) === norm(r.beneficiar))).slice(0, 2);
+  box.innerHTML = `<span style="color:var(--warn,#b7791f)">Nelegat de un client.</span> `
+    + sim.map((c) => `<button class="btn small" data-uscl="${c.id}">Folosește „${esc(c.nume)}”</button>`).join(' ')
+    + regs.map((r, i) => ` <button class="btn small" data-regcl="${i}" title="Din registrul de proiecte, ${esc(r.nrProiect || '')}">Din registru: „${esc(r.beneficiar)}”</button>`).join('')
+    + ` <button class="btn small primary" data-newcl="1">+ Client nou „${esc(name)}”</button>`;
+  box.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation();
+    let c;
+    if (b.dataset.uscl) c = S.clients.get(b.dataset.uscl);
+    else { const r = b.dataset.regcl != null ? regs[+b.dataset.regcl] : null; c = { id: L.uid('c_'), nume: r ? r.beneficiar : name, tip: /\b(srl|sa|s\.r\.l)\b/i.test(r ? r.beneficiar : name) ? 'PJ' : 'PF', localitate: d.localitate || (r ? r.adresa : '') || '', adresa: '', tel: '', email: '', note: '', sursa: r ? 'registru' : 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); toast('Client creat: ' + c.nume); }
+    d.clientId = c.id; d.clientNume = c.nume; const i = $('[data-p="clientNume"]'); if (i) i.value = c.nume; title(); scheduleSave(); clientHint();
+  };
+}
 function bindForm() {
   const f = $('#form');
   f.oninput = (e) => {
@@ -576,6 +596,7 @@ function bindForm() {
     if (p.startsWith('contract.regim.')) { S.draft.contract.regim = S.draft.contract.regim || {}; S.draft.contract.regim[p.slice(15).replace(/·/g, '.')] = v; }
     else setPath(S.draft, p, v);
     if (p === 'clientNume' || p === 'localitate') title();
+    if (p === 'clientNume') { clearTimeout(S.hintT); S.hintT = setTimeout(clientHint, 250); }
     if (p === 'data' && S.draft.sursa !== 'excel') { S.draft.nr = L.nrInreg(v, seqFor(v, S.draft.id)); const n = $('#i-nr'); if (n) n.value = S.draft.nr; }
     liveCalc(); scheduleSave();
   };
@@ -810,13 +831,14 @@ function viewClients() {
   const totRest = list.reduce((s, x) => s + Math.max(0, x.s.rest), 0);
   const totNow = list.reduce((s, x) => s + x.s.now, 0);
   $('#main').innerHTML = `<div class="toolbar"><h2>Clienți <span class="sub">${list.length}</span></h2>
-    <input id="clQ" class="btn" style="min-width:220px" placeholder="Filtrează clienții…" value="${esc(S.clQ)}"><button class="btn" id="clNew">+ Client</button></div>
+    <input id="clQ" class="btn" style="min-width:220px" placeholder="Filtrează clienții…" value="${esc(S.clQ)}"><button class="btn" id="clChk">De verificat · ${clientIssues().filter((x) => x.w > 0).length}</button><button class="btn" id="clNew">+ Client</button></div>
   <div class="kpis"><div class="kpi"><div class="lbl">Clienți cu contract</div><div class="val">${list.filter((x) => x.s.contracted.length).length}</div><div class="sub">${list.filter((x) => x.s.contracted.some((o) => !o.contract?.istoric)).length} cu sold urmărit</div></div><div class="kpi bad"><div class="lbl">De încasat acum</div><div class="val">${L.eur(totNow)}</div><div class="sub">după progresul proiectelor</div></div><div class="kpi"><div class="lbl">Rest contracte în curs</div><div class="val">${L.eur(totRest)}</div></div></div>
   ${q ? '' : dupCard(findDups())}
   <div class="tablebox"><table class="list"><thead><tr><th>Client</th><th>Localitate</th><th class="n">Oferte</th><th class="n">Contractat (arh.)</th><th class="n">Încasat</th><th class="n">De încasat acum</th><th class="n">Rest contract</th></tr></thead><tbody>
   ${list.map(({ c, s }) => `<tr class="click" data-id="${c.id}"><td><b>${esc(c.nume)}</b>${c.tel ? `<div class="sub">${esc(c.tel)}</div>` : ''}</td><td>${esc(c.localitate)}</td><td class="n">${s.offers.length}</td><td class="n" data-v="${s.due}">${s.due ? L.eur(s.due) : '—'}</td><td class="n" data-v="${s.paid}">${s.paid ? L.eur(s.paid) : '—'}</td><td class="n" data-v="${s.now}" style="color:${s.now > 0.5 ? 'var(--bad)' : 'inherit'}">${s.now ? L.eur(s.now) : '—'}</td><td class="n" data-v="${s.rest}">${s.tracked ? L.eur(s.rest) : '—'}</td></tr>`).join('')}
   </tbody></table></div>`;
   $('#clQ').oninput = (e) => { S.clQ = e.target.value; const pos = e.target.selectionStart; viewClients(); const i = $('#clQ'); i.focus(); i.setSelectionRange(pos, pos); };
+  $('#clChk').onclick = () => go('verificare');
   $('#clNew').onclick = () => { const c = { id: L.uid('c_'), nume: 'Client nou', tip: 'PF', localitate: '', adresa: '', tel: '', email: '', note: '', sursa: 'app' }; S.clients.set(c.id, c); write('clients', c.id, c); go('client', c.id); };
   $$('tr.click').forEach((r) => (r.onclick = () => go('client', r.dataset.id)));
   bindDups($('#main'), () => viewClients());
@@ -874,13 +896,27 @@ function viewPayments() {
 }
 
 /* ---------------- REGISTRY ---------------- */
+const regCache = new Map();
+function regClient(r) {
+  const k = r.beneficiar; if (regCache.has(k) && S.clients.has(regCache.get(k))) return S.clients.get(regCache.get(k));
+  const nt = nameToks(r.beneficiar); let best = null;
+  for (const c of S.clients.values()) {
+    const ct = nameToks(c.nume || ''); if (!ct.length || !nt.length) continue;
+    const eq = ct.length === nt.length && ct.every((w) => nt.some((v) => tokEq(w, v)));
+    if (eq) { best = c; break; }
+    if (!best && sameClient({ nume: r.beneficiar }, c)) best = c;
+  }
+  regCache.set(k, best ? best.id : null); return best;
+}
 function viewRegistry() {
+  regCache.clear();
   const q = norm(S.regQ);
   const list = S.registru.filter((r) => !q || norm([r.beneficiar, r.obiect, r.adresa, r.nrProiect, r.contract, r.rez, r.inst].join(' ')).includes(q));
   $('#main').innerHTML = `<div class="toolbar"><h2>Registru proiecte <span class="sub">${list.length} din ${S.registru.length} · din „Clienti Arhideea.xlsx”</span></h2><input id="rQ" class="btn" style="min-width:240px" placeholder="Caută în registru…" value="${esc(S.regQ)}"></div>
-  ${S.registru.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Beneficiar</th><th>Obiect</th><th>Adresă</th><th>Nr. proiect</th><th>Contract</th><th>Dovadă OAR</th><th>Rez. / Inst.</th></tr></thead><tbody>
-  ${list.map((r) => `<tr><td><b>${esc(r.beneficiar)}</b> <span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td>${esc(r.obiect)}</td><td>${esc(r.adresa)}</td><td class="num">${esc(r.nrProiect)}</td><td>${esc(r.contract)}</td><td class="num">${esc(r.dovadaOar)}</td><td class="sub">${esc([r.rez, r.inst].filter(Boolean).join(' / '))}</td></tr>`).join('')}
+  ${S.registru.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Beneficiar</th><th>Obiect</th><th>Adresă</th><th>Nr. proiect</th><th>Contract</th><th>Dovadă OAR</th><th>Rez. / Inst.</th><th>În CRM</th></tr></thead><tbody>
+  ${list.map((r) => `<tr><td><b>${esc(r.beneficiar)}</b> <span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td>${esc(r.obiect)}</td><td>${esc(r.adresa)}</td><td class="num">${esc(r.nrProiect)}</td><td>${esc(r.contract)}</td><td class="num">${esc(r.dovadaOar)}</td><td class="sub">${esc([r.rez, r.inst].filter(Boolean).join(' / '))}</td><td>${(() => { const c = regClient(r); if (c) { const n = [...S.offers.values()].filter((o) => o.clientId === c.id).length; return `<a href="#c-${c.id}">${esc(c.nume)}</a><div class="sub">${n} ofert${n === 1 ? 'ă' : 'e'}</div>`; } return `<button class="btn small" data-regnew="${S.registru.indexOf(r)}">+ Client</button>`; })()}</td></tr>`).join('')}
   </tbody></table></div>` : '<div class="empty">Registrul se încarcă…</div>'}`;
+  $$('[data-regnew]').forEach((b) => (b.onclick = () => { const r = S.registru[+b.dataset.regnew]; const c = { id: L.uid('c_'), nume: r.beneficiar, tip: /\b(srl|sa)\b/i.test(r.beneficiar) ? 'PJ' : 'PF', localitate: r.adresa || '', adresa: '', tel: '', email: '', note: [r.nrProiect && 'Proiect ' + r.nrProiect, r.obiect].filter(Boolean).join(' · '), sursa: 'registru' }; S.clients.set(c.id, c); write('clients', c.id, c); toast('Client creat din registru'); go('client', c.id); }));
   $('#rQ').oninput = (e) => { S.regQ = e.target.value; const pos = e.target.selectionStart; viewRegistry(); const i = $('#rQ'); i.focus(); i.setSelectionRange(pos, pos); };
 }
 
@@ -1198,6 +1234,50 @@ function bindCadru(c) {
 }
 
 
+/* ---------------- CALITATEA DATELOR (clienți) ---------------- */
+const PROJ_RX = /\b(amenaj\w*|locuint\w*|casa|case|hala|hale|pensiune|statie|statii|bloc|apartament\w*|oferta|proiect\w*|birou\w*|vacanta|duplex|anexa|extinder\w*|reabilit\w*|magazin|restaurant|cladire|imobil|bransament|dezafectare|firma luminoasa|biserica|parc|piata|centru|laborator|sat)\b/i;
+function clientIssues() {
+  const all = [...S.clients.values()]; const locs = new Set(); S.offers.forEach((o) => nameToks(o.localitate || '').forEach((w) => locs.add(w)));
+  ['brasov','sanpetru','stupini','sacele','rasnov','harman','codlea','bran','sohodol','pestera','zarnesti','ghimbav','predeal','prejmer','tarlungeni','bunloc','halchiu','feldioara','vulcan','moieciu','poiana','schei','tractoru','cristian','bod'].forEach((w) => locs.add(w));
+  const names = all.map((c) => norm(c.nume || '').trim());
+  const out = [];
+  for (const c of all) {
+    if (c.verificat) continue;
+    const nm = (c.nume || '').trim(); const nn = norm(nm); const why = [];
+    const nOff = [...S.offers.values()].filter((o) => o.clientId === c.id).length; const nPay = [...S.payments.values()].filter((p) => p.clientId === c.id).length;
+    if (!nm || /^f[aă]r[aă] nume/i.test(nm) || nm === 'Client nou') why.push('fără nume');
+    if (PROJ_RX.test(nn)) why.push('conține denumirea proiectului');
+    if (/\d/.test(nm) && !/\b(srl|sa|s\.r\.l)\b/i.test(nm)) why.push('conține cifre');
+    if (nm && nm[0] === nm[0].toLowerCase() && /[a-z]/.test(nm[0])) why.push('începe cu literă mică');
+    const tk = nameToks(nm); if (tk.length > 1 && locs.has(tk[tk.length - 1])) why.push('conține localitatea');
+    if (tk.length === 1 && !/\b(srl|sa)\b/i.test(nm)) why.push('doar un nume');
+    if (nn.length >= 2 && names.some((x) => x !== nn && x.startsWith(nn) && x.length > nn.length + 1)) why.push('nume incomplet?');
+    if (!nOff && !nPay && !(c.docs || []).length && !c.cadru) why.push('fără oferte (creat accidental?)');
+    if (why.length) out.push({ c, why, nOff, nPay, w: why.filter((x) => x !== 'doar un nume').length });
+  }
+  return out.sort((a, b) => b.w - a.w || norm(a.c.nume).localeCompare(norm(b.c.nume)));
+}
+function viewCheck() {
+  const all = clientIssues(); const f = S.chkF || '';
+  const reasons = {}; all.forEach((x) => x.why.forEach((w) => (reasons[w] = (reasons[w] || 0) + 1)));
+  const list = f ? all.filter((x) => x.why.includes(f)) : all.filter((x) => x.w > 0);
+  $('#main').innerHTML = `<div class="ehead"><button class="back" id="bk">← Clienți</button><h2>Clienți de verificat</h2><span class="sub">${list.length}</span></div>
+  <div class="sub" style="margin-bottom:8px">Corectează numele direct aici (se actualizează și în oferte), unește-l cu clientul corect sau șterge-l dacă nu are nimic legat. „E corect” îl scoate din listă.</div>
+  <div class="chips" style="margin-bottom:10px"><button class="chip" data-chk="" aria-pressed="${!f}">importante · ${all.filter((x) => x.w > 0).length}</button>${Object.entries(reasons).map(([k, v]) => `<button class="chip" data-chk="${esc(k)}" aria-pressed="${f === k}">${esc(k)} · ${v}</button>`).join('')}</div>
+  <datalist id="dlAllCl">${[...S.clients.values()].map((c) => `<option value="${esc(c.nume)}">`).join('')}</datalist>
+  <div class="tablebox"><table class="list"><thead><tr><th>Nume client</th><th>Motiv</th><th class="n">Oferte</th><th>Acțiuni</th></tr></thead><tbody>
+  ${list.slice(0, 300).map(({ c, why, nOff, nPay }) => { const o = [...S.offers.values()].find((x) => x.clientId === c.id); return `<tr data-cid="${c.id}"><td><input data-chkname="${c.id}" value="${esc(c.nume || '')}" style="width:100%;min-width:200px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font:inherit"><div class="sub">${esc([c.localitate, o?.fisierOferta || o?.excelSheet].filter(Boolean).join(' · '))}</div></td>
+    <td class="sub">${why.map(esc).join('<br>')}</td><td class="n">${nOff}${nPay ? `<div class="sub">${nPay} plăți</div>` : ''}</td>
+    <td style="white-space:nowrap"><a class="btn small" href="#c-${c.id}">Deschide</a> <input list="dlAllCl" data-mergeto="${c.id}" placeholder="Unește cu…" style="width:150px;padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font:inherit;font-size:13px"> <button class="btn small" data-mergego="${c.id}">Unește</button> <button class="btn small ghost" data-chkok="${c.id}">E corect</button>${!nOff && !nPay ? ` <button class="btn small ghost danger" data-chkdel="${c.id}">Șterge</button>` : ''}</td></tr>`; }).join('')}
+  </tbody></table></div>${list.length > 300 ? '<div class="sub">Primele 300.</div>' : ''}`;
+  $('#bk').onclick = () => go('clienti');
+  $$('[data-chk]').forEach((b) => (b.onclick = () => { S.chkF = b.dataset.chk; viewCheck(); }));
+  $$('[data-chkname]').forEach((i) => (i.onchange = () => { const c = S.clients.get(i.dataset.chkname); c.nume = i.value.trim(); write('clients', c.id, c); S.offers.forEach((o) => { if (o.clientId === c.id) { o.clientNume = c.nume; write('offers', o.id, o); } }); toast('Nume actualizat'); }));
+  $$('[data-chkok]').forEach((b) => (b.onclick = () => { const c = S.clients.get(b.dataset.chkok); c.verificat = true; write('clients', c.id, c); b.closest('tr').remove(); }));
+  $$('[data-chkdel]').forEach((b) => (b.onclick = () => { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sigur?'; return; } const id = b.dataset.chkdel; S.clients.delete(id); remove('clients', id); b.closest('tr').remove(); }));
+  $$('[data-mergego]').forEach((b) => (b.onclick = async () => { const id = b.dataset.mergego; const v = norm($(`[data-mergeto="${id}"]`).value).trim(); const t = [...S.clients.values()].find((x) => x.id !== id && norm(x.nume).trim() === v); if (!t) { toast('Alege clientul din listă'); return; } if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sigur? în „' + t.nume + '”'; return; } await mergeClients(t.id, id); b.closest('tr').remove(); }));
+}
+
 /* ---------------- DUBLURI CLIENȚI ---------------- */
 const DSTOP = new Set(['srl', 'sa', 'sc', 'pfa', 'ii', 'if', 'fam', 'familia', 'dl', 'dna', 'arh', 'ing', 'si', 'de', 'la', 'com', 'impex', 'prod', 'cons', 'trans', 'grup', 'group', 'company', 'construct', 'invest', 'service', 'srl.']);
 const nameToks = (n) => norm(n).replace(/s\.?\s?r\.?\s?l\.?/g, ' ').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !DSTOP.has(w));
@@ -1211,6 +1291,7 @@ function sameClient(a, b) {
   if (a.email && b.email && norm(a.email).trim() === norm(b.email).trim()) return 'același e-mail';
   const ta = nameToks(a.nume || ''), tb = nameToks(b.nume || ''); if (!ta.length || !tb.length) return '';
   const [sm, lg] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (sm.length >= 2 && sm.length === lg.length && sm.every((w) => lg.some((v) => tokEq(w, v)))) return 'nume aproape identic';
   if (sm.every((w) => lg.some((v) => tokEq(w, v))) && sm.some((w) => w.length >= 5 && !PRENUME.has(w))) return sm.length === lg.length ? 'nume aproape identic' : 'nume conținut în celălalt';
   return '';
 }
