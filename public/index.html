@@ -965,7 +965,10 @@ $('#btnExport').onclick = async () => {
 const AVIZE_STD = ['Alimentare cu apă', 'Canalizare', 'Alimentare cu energie electrică', 'Gaze naturale', 'Telefonizare', 'Salubritate', 'Securitate la incendiu (ISU)', 'Protecția civilă', 'Sănătatea populației (DSP)', 'Act administrativ / punct de vedere mediu (APM)', 'Direcția Județeană pentru Cultură', 'Studiu geotehnic', 'Ridicare topografică vizată OCPI', 'Aviz administrator drum', 'Aviz gospodărirea apelor', 'Extras de carte funciară actualizat'];
 const todayIso = () => L.ofertaNoua(sett()).data;
 function addMonths(iso, m) { if (!iso || !L.n(m)) return ''; const [y, mo, d] = iso.split('-').map(Number); const dt = new Date(Date.UTC(y, mo - 1 + L.n(m), d)); return dt.toISOString().slice(0, 10); }
-const cuExp = (c) => c.dataExpirare || addMonths(c.dataEmitere, c.valabilitateLuni);
+const cuExp0 = (c) => c.dataExpirare || addMonths(c.dataEmitere, c.valabilitateLuni);
+/* valabilitatea curentă: ultima prelungire (dacă există) */
+const plEnd = (c, i) => { const p = c.prelungiri[i]; if (p.panaLa) return p.panaLa; const prev = i ? plEnd(c, i - 1) : cuExp0(c); return addMonths(prev, p.luni); };
+const cuExp = (c) => (c.prelungiri && c.prelungiri.length) ? (plEnd(c, c.prelungiri.length - 1) || cuExp0(c)) : cuExp0(c);
 const daysTo = (iso) => iso ? Math.round((Date.parse(iso + 'T00:00:00Z') - Date.parse(todayIso() + 'T00:00:00Z')) / 86400000) : null;
 function daysPill(iso) { const d = daysTo(iso); if (d == null) return '<span class="sub">fără dată</span>'; const cls = d < 0 ? 'bad' : d <= 30 ? 'bad' : d <= 60 ? 'warn' : 'ok'; return `<span class="days ${cls}">${d < 0 ? 'expirat de ' + -d + ' zile' : d === 0 ? 'expiră azi' : 'încă ' + d + ' zile'}</span>`; }
 function cuFor(offerId) { return [...S.cu.values()].filter((c) => c.offerId === offerId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); }
@@ -999,7 +1002,8 @@ function cuEditor(c) {
   return `<div class="cubox" data-cubox="${c.id}">
     <div class="cuhd"><b>CU ${esc(c.nr || 'fără număr')}${c.dataEmitere ? ' / ' + L.dataRo(c.dataEmitere) : ''}</b> ${daysPill(exp)} <span class="sub">${st.ok} din ${st.tot} avize obținute</span>
       <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${c.fileKey ? `<a class="btn small" href="/api/files/${encodeURIComponent(c.fileKey)}" target="_blank" rel="noopener">Deschide ${esc(c.fileName || 'fișierul')}</a><button class="btn small" data-cuai="${c.id}">Recitește</button>` : ''}<button class="btn small" data-cuctr="${c.id}">Preia în contract</button><button class="btn small danger" data-cudel="${c.id}">Șterge</button></span></div>
-    <div class="grid">${f('nr', 'Nr. CU')}${f('dataEmitere', 'Emis la', 'date')}${f('valabilitateLuni', 'Valabil (luni)')}${field('Expiră la' + (c.dataExpirare ? '' : ' (calculat)'), `<input data-cf="dataExpirare" data-cu="${c.id}" type="date" value="${esc(exp)}">`)}${f('emitent', 'Emitent')}</div>
+    <div class="grid">${f('nr', 'Nr. CU')}${f('dataEmitere', 'Emis la', 'date')}${f('valabilitateLuni', 'Valabil (luni)')}${field('Expiră la' + (c.prelungiri?.length ? ' (inițial)' : c.dataExpirare ? '' : ' (calculat)'), `<input data-cf="dataExpirare" data-cu="${c.id}" type="date" value="${esc(cuExp0(c))}">`)}${f('emitent', 'Emitent')}</div>
+    ${plBlock(c)}
     <div class="grid">${f('scop', 'Scop / denumirea lucrării')}${f('amplasament', 'Amplasament')}${f('cf', 'Nr. CF')}${f('nrCad', 'Nr. cadastral')}</div>
     ${c.regim ? `<div class="sub">Regim: ${esc(c.regim)}</div>` : ''}
     <div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div>
@@ -1010,17 +1014,32 @@ function cuEditor(c) {
     ${field('Note CU (prelungire, depuneri etc.)', `<textarea data-cf="note" data-cu="${c.id}" rows="2">${esc(c.note || '')}</textarea>`)}
   </div>`;
 }
+function plBlock(c) {
+  const pl = c.prelungiri || [];
+  const pf = (i, k, type, w) => `<input data-pl="${c.id}" data-i="${i}" data-k="${k}" ${type ? `type="${type}"` : ''} style="${w ? 'width:' + w : ''}" value="${esc(pl[i][k] ?? '')}">`;
+  return `<div style="margin:4px 0 10px">
+    ${pl.length ? `<div class="rows"><table class="ed"><thead><tr><th>Prelungire</th><th style="width:150px">Prelungit la</th><th style="width:90px">Cu (luni)</th><th style="width:160px">Valabil până la</th><th>Act / document</th><th></th></tr></thead><tbody>
+      ${pl.map((p, i) => `<tr><td class="sub">${i + 1}</td><td>${pf(i, 'data', 'date')}</td><td>${pf(i, 'luni', '', '70px')}</td><td><input data-pl="${c.id}" data-i="${i}" data-k="panaLa" type="date" value="${esc(plEnd(c, i))}" title="Calculat din valabilitatea anterioară + luni; îl poți corecta"></td>
+        <td>${p.fileKey ? `<a href="/api/files/${encodeURIComponent(p.fileKey)}" target="_blank" rel="noopener">${esc(p.fileName || 'fișier')}</a>` : `<label class="btn small" style="cursor:pointer">Atașează (fără citire AI)<input type="file" data-plfile="${c.id}" data-i="${i}" accept="application/pdf,image/*" style="display:none"></label>`} ${pf(i, 'nr', '', '110px').replace('<input', '<input placeholder="nr. / observații"')}</td>
+        <td><button class="x" data-pldel="${c.id}" data-i="${i}" title="Șterge prelungirea">×</button></td></tr>`).join('')}
+    </tbody></table></div>` : ''}
+    <button class="btn small" data-pladd="${c.id}">↻ CU prelungit</button> <span class="sub">${pl.length ? 'Valabilitatea și alertele din panou folosesc ultima prelungire.' : 'Bifezi prelungirea fără să reîncarci CU-ul; avizele rămân aceleași.'}</span>
+  </div>`;
+}
 function bindCu(box) {
   box.oninput = (e) => {
     e.stopPropagation(); const el = e.target;
     if (el.dataset.cf) { const c = S.cu.get(el.dataset.cu); if (!c) return; let v = el.value; if (el.dataset.cf === 'valabilitateLuni') v = L.n(v); c[el.dataset.cf] = v; if (el.dataset.cf === 'valabilitateLuni' || el.dataset.cf === 'dataEmitere') { if (c._expAuto !== false) c.dataExpirare = ''; } if (el.dataset.cf === 'dataExpirare') c._expAuto = false; saveCu(c); }
     if (el.dataset.av && el.type !== 'checkbox') { const c = S.cu.get(el.dataset.av); c.avize[+el.dataset.i][el.dataset.k] = el.value; saveCu(c); }
+    if (el.dataset.pl) { const c = S.cu.get(el.dataset.pl); const p = c.prelungiri[+el.dataset.i]; const k = el.dataset.k; p[k] = k === 'luni' ? L.n(el.value) : el.value; if (k === 'luni') p.panaLa = ''; saveCu(c); }
   };
   box.onchange = (e) => {
     e.stopPropagation(); const el = e.target;
     if (el.dataset.av && el.type === 'checkbox') { const c = S.cu.get(el.dataset.av); const a = c.avize[+el.dataset.i]; a.obtinut = el.checked; if (el.checked && !a.data) a.data = todayIso(); saveCu(c); renderCuCard(); }
     if (el.dataset.avstd && el.value) { const c = S.cu.get(el.dataset.avstd); c.avize = c.avize || []; c.avize.push({ den: el.value, obtinut: false }); saveCu(c); renderCuCard(); }
     if (el.dataset.cf === 'dataEmitere' || el.dataset.cf === 'valabilitateLuni' || el.dataset.cf === 'dataExpirare') renderCuCard();
+    if (el.dataset.pl && el.dataset.k !== 'nr') renderCuCard();
+    if (el.dataset.plfile && el.files[0]) { const c = S.cu.get(el.dataset.plfile); const p = c.prelungiri[+el.dataset.i]; $('#cuMsg').textContent = 'Încarc actul de prelungire…'; uploadFile(el.files[0]).then((up) => { p.fileKey = up.key; p.fileName = up.name; saveCu(c); $('#cuMsg').textContent = ''; renderCuCard(); }).catch((er) => { $('#cuMsg').textContent = 'Nu am reușit: ' + er.message; }); }
   };
   box.onclick = async (e) => {
     const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
@@ -1039,6 +1058,8 @@ function bindCu(box) {
       b.disabled = false; return;
     }
     if (b.dataset.cuai) { await readCu(S.cu.get(b.dataset.cuai), $('#cuMsg')); return; }
+    if (b.dataset.pladd) { const c = S.cu.get(b.dataset.pladd); c.prelungiri = c.prelungiri || []; c.prelungiri.push({ data: todayIso(), luni: 12, panaLa: '', nr: '' }); saveCu(c); renderCuCard(); updateBadge(); return; }
+    if (b.dataset.pldel) { const c = S.cu.get(b.dataset.pldel); const p = c.prelungiri.splice(+b.dataset.i, 1)[0]; if (p?.fileKey) api('DELETE', 'files/' + encodeURIComponent(p.fileKey)).catch(() => {}); saveCu(c); renderCuCard(); updateBadge(); return; }
     if (b.dataset.avadd) { const c = S.cu.get(b.dataset.avadd); c.avize = c.avize || []; c.avize.push({ den: '', obtinut: false }); saveCu(c); renderCuCard(); return; }
     if (b.dataset.avdel) { const c = S.cu.get(b.dataset.avdel); c.avize.splice(+b.dataset.i, 1); saveCu(c); renderCuCard(); return; }
     if (b.dataset.cuctr) {
@@ -1074,7 +1095,7 @@ function viewCuList() {
   list.sort((a, b) => (a.exp || '9999').localeCompare(b.exp || '9999'));
   $('#main').innerHTML = `<div class="toolbar"><h2>Certificate de urbanism <span class="sub">${list.length}</span></h2></div>
   ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Client / obiectiv</th><th>CU</th><th>Expiră</th><th>Avize</th><th>Lipsesc</th></tr></thead><tbody>
-  ${list.map(({ c, exp, st, o }) => `<tr class="click" data-o="${esc(c.offerId)}"><td><b>${esc(o?.clientNume || '—')}</b><div class="sub">${esc(o?.obiectiv || c.scop || '')}</div></td><td class="num">${esc(c.nr || '—')}<div class="sub">${esc(L.dataRo(c.dataEmitere))}</div></td><td>${daysPill(exp)}<div class="sub num">${esc(L.dataRo(exp))}</div></td><td><div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div><div class="sub">${st.ok} din ${st.tot}</div></td><td class="sub">${esc(st.lipsa.slice(0, 4).map((a) => a.den).join(', '))}${st.lipsa.length > 4 ? ' …' : ''}</td></tr>`).join('')}
+  ${list.map(({ c, exp, st, o }) => `<tr class="click" data-o="${esc(c.offerId)}"><td><b>${esc(o?.clientNume || '—')}</b><div class="sub">${esc(o?.obiectiv || c.scop || '')}</div></td><td class="num">${esc(c.nr || '—')}<div class="sub">${esc(L.dataRo(c.dataEmitere))}</div></td><td>${daysPill(exp)}<div class="sub num">${esc(L.dataRo(exp))}</div>${c.prelungiri?.length ? '<div class="sub">prelungit' + (c.prelungiri.length > 1 ? ' ×' + c.prelungiri.length : '') + '</div>' : ''}</td><td><div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div><div class="sub">${st.ok} din ${st.tot}</div></td><td class="sub">${esc(st.lipsa.slice(0, 4).map((a) => a.den).join(', '))}${st.lipsa.length > 4 ? ' …' : ''}</td></tr>`).join('')}
   </tbody></table></div>` : `<div class="empty">Niciun certificat de urbanism încă. Îl încarci din ofertă, în secțiunea „Certificat de urbanism și avize”.</div>`}`;
   $$('tr.click').forEach((r) => (r.onclick = () => S.offers.has(r.dataset.o) && go('oferta', r.dataset.o)));
 }
