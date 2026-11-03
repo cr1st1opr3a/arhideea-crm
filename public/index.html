@@ -570,7 +570,7 @@ function cartusCard(op) {
     <details data-k="cartTeh" ${op('cartTeh', false)}><summary class="sub" style="cursor:pointer">Date tehnice (opțional — goale rămân ca în template)</summary>
       <div class="grid">${pf('clasa', 'Clasa de importanță', { ph: '' })}${pf('grf', 'Grad rezistență la foc', { ph: '' })}${pf('psi', 'Verificare PSI', { ph: 'NU' })}${pf('pot', 'POT', { ph: '' })}${pf('cut', 'CUT', { ph: '' })}${pf('ac', 'Arie construită la sol', { ph: '' })}${pf('acd', 'Arie desfășurată', { ph: '' })}${pf('su', 'Suprafață utilă', { ph: '' })}</div>
     </details>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" id="dlPI">Descarcă Project Info .xml</button><span class="sub">în Archicad: File › Info › Project Info › Import${String(p.nrProiect || '').trim() ? '' : ' · lipsește nr. proiectului'}</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" id="dlPI">Descarcă Project Info .xml</button><button class="btn" id="openCereri" title="Cerere CU, AC, prelungiri, începere/încheiere lucrări — precompletate din CRM">Completează cereri…</button><span class="sub">în Archicad: File › Info › Project Info › Import${String(p.nrProiect || '').trim() ? '' : ' · lipsește nr. proiectului'}</span></div>
     <datalist id="dlFaza">${L.FAZE.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>${dl('dlRez', 'rezistență')}${dl('dlInst', 'instalații')}${dl('dlVer', 'verificator')}${dl('dlExp', 'expert')}${dl('dlExec', 'executant')}
   </div></details>`;
 }
@@ -675,6 +675,7 @@ function bindForm() {
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
     if (b.id === 'scanGo') { await scanDocs(); return; }
     if (b.id === 'dlPI') { await downloadProjectInfo(); return; }
+    if (b.id === 'openCereri') { flushSave(); window.open('cereri.html?o=' + encodeURIComponent(d.id), '_blank'); return; }
   };
 }
 
