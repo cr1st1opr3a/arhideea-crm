@@ -306,5 +306,167 @@
     };
   };
 
+
+  /* ===== Project Info pentru Archicad (ROtemplate 29) ===== */
+  const PI_KEYS = `F|Project Name|PROJECTNAME|ROTEMPLATE
+F|Project Description|PROJECT_DESCRIPTION|
+F|Project ID|PROJECT_ID|
+F|Project Code|PROJECT_CODE|
+F|Project Number|PROJECTNUMBER|NR. PROIECT
+F|Project Status|PROJECTSTATUS|FAZA PROIECT
+F|Keywords|KEYWORDS|
+F|Notes|NOTES|
+F|Site Name|SITE_NAME|DENUMIRE AMPLASAMENT
+F|Site Description|SITE_DESCRIPTION|
+F|Site ID|SITE_ID|
+F|Site Full Address|SITEFULLADDRESS|ADRESA ORAS AMPLASAMENT Romania
+F|Site Address1|SITEADDRESS1|ADRESA
+F|Site Address2|SITEADDRESS2|
+F|Site Address3|SITEADDRESS3|
+F|Site Postal Box|SITEPOSTBOX|
+F|Site City|SITECITY|ORAS AMPLASAMENT
+F|Site State|SITESTATE|
+F|Site Postcode|SITEPOSTCODE|
+F|Site Country|SITECOUNTRY|Romania
+F|Site Gross Perimeter|SITEGROSSPERIMETER|
+F|Site Gross Area|SITEGROSSAREA|SUPRAFATA TEREN
+F|Building Name|BUILDING_NAME|DENUMIRE CLADIRE
+F|Building Description|BUILDING_DESCRIPTION|
+F|Building ID|BUILDING_ID|
+F|Contact Full Name|CONTACT_FULLNAME|ARH.
+F|Contact Prefix Title|CONTACT_PREFIXTITLE|
+F|Contact Given Name|CONTACT_GIVENNAME|ARH.
+F|Contact Middle Name|CONTACT_MIDDLENAME|
+F|Contact Family Name|CONTACT_FAMILYNAME|
+F|Contact Suffix Title|CONTACT_SUFFIXTITLE|
+F|Contact Name Order|CONTACT_NAMEORDER|
+F|Contact ID|CONTACT_ID|
+F|Contact Role|CONTACT_ROLE|
+F|Contact Department|CONTACT_DEPARTMENT|
+F|CAD Technician Full Name|CAD_TECHNICIAN_FULLNAME|DESENATOR
+F|CAD Technician Prefix Title|CAD_TECHNICIAN_PREFIXTITLE|
+F|CAD Technician Given Name|CAD_TECHNICIAN_GIVENNAME|DESENATOR
+F|CAD Technician Middle Name|CAD_TECHNICIAN_MIDDLENAME|
+F|CAD Technician Family Name|CAD_TECHNICIAN_FAMILYNAME|
+F|CAD Technician Suffix Title|CAD_TECHNICIAN_SUFFIXTITLE|
+F|CAD Technician Name Order|CAD_TECHNICIAN_NAMEORDER|
+F|Contact Company|CONTACTCOMPANY|PROIECTANT ARHITECTURA SRL
+F|Contact Company Code|CONTACT_COMPANYCODE|
+F|Contact Full Address|CONTACTFULLADDRESS|
+F|Contact Address1|CONTACTADDRESS1|
+F|Contact Address2|CONTACTADDRESS2|
+F|Contact Address3|CONTACTADDRESS3|
+F|Contact Postal Box|CONTACTPOSTBOX|
+F|Contact City|CONTACTCITY|
+F|Contact State|CONTACTSTATE|
+F|Contact Postcode|CONTACTPOSTCODE|
+F|Contact Country|CONTACTCOUNTRY|Romania
+F|Contact E-mail|CONTACTEMAIL|
+F|Contact Phone Number|CONTACTPHONE|
+F|Contact Fax|CONTACTFAX|
+F|Contact Web|CONTACTWEB|
+F|Client Full Name|CLIENT_FULLNAME|NUME BENEFICIAR
+F|Client Prefix Title|CLIENT_PREFIXTITLE|
+F|Client Given Name|CLIENT_GIVENNAME|NUME BENEFICIAR
+F|Client Middle Name|CLIENT_MIDDLENAME|
+F|Client Family Name|CLIENT_FAMILYNAME|
+F|Client Suffix Title|CLIENT_SUFFIXTITLE|
+F|Client Name Order|CLIENT_NAMEORDER|
+F|Client Company|CLIENTCOMPANY|
+F|Client Full Address|CLIENTFULLADDRESS|
+F|Client Address1|CLIENTADDRESS1|
+F|Client Address2|CLIENTADDRESS2|
+F|Client Address3|CLIENTADDRESS3|
+F|Client Postal Box|CLIENTPOSTBOX|
+F|Client City|CLIENTCITY|
+F|Client State|CLIENTSTATE|
+F|Client Postcode|CLIENTPOSTCODE|
+F|Client Country|CLIENTCOUNTRY|
+F|Client E-mail|CLIENTEMAIL|
+F|Client Phone Number|CLIENTPHONE|NR. TEL. BENEFICIAR
+F|Client Fax|CLIENTFAX|
+F|EcoDesigner report header text|EDREPORTHEADER|
+C|Coordonator proiect|CUSTOM1|COORD. PROIECT
+C|Șef proiect|CUSTOM2|SEF PROIECT
+C|Nume Verificator|CUSTOM3|NUME VERIFICATOR
+C|Arie construită desfășurată|autotext-BUILDING-8768DA21-BE7F-1C4D-BCAF-11FF1B496B76|ARIE DESF.
+C|Grad de rezistență la foc|autotext-BUILDING-280B8FE8-8A2C-479D-8B10-CC92F846392D|GRF
+C|Proiectant de specialitate|autotext-PROJECT-A4DA76EA-5FD8-49F2-9DCA-19B1870B1ADE|
+C|Proiectant general|autotext-PROJECT-AADF5365-9BD5-442E-8A26-5F3DD4DA1EDC|PROIECTANT GENERAL
+C|Clasa de importanță|autotext-BUILDING-4DEB680E-457F-4E02-A345-0163D60EC45E|CLASA IMP.
+C|Categoria de importanță|autotext-BUILDING-BCD22C38-BA3F-46A0-98BE-F260E4B5D91C|CATEG. IMP.
+C|Proiectant arhitectură|autotext-PROJECT-BBF4FA65-BC0C-4C57-9C72-D6BF96E04C4E|PROIECTANT ARH.
+C|Proiectant structură|autotext-PROJECT-FD30A2B2-03C0-4E5F-8394-3F894EA6EA31|
+C|POT|autotext-SITE-DAEB6E3C-EF97-BE4D-BC28-3DD5E1E2B3F5|
+C|CUT|autotext-SITE-8B35807B-CE14-F249-8F7D-40185FF26745|
+C|Arie construită la sol|autotext-BUILDING-FC870FA3-2DB6-6F4B-8A55-F9C76B3EF34A|ARIE LA SOL
+C|Suprafața utilă|autotext-BUILDING-26390E59-D5D8-E94E-BBAC-70FCDB9E7EF8|SUPR. UTILA
+C|Project Date|autotext-PROJECT-1CF2CCE8-2F88-FB4C-8A97-C794D565468C|DATA PROIECT
+C|Executant|autotext-PROJECT-915434F8-F9B2-404D-9F3F-CD62957286AF|EXECUTANT
+C|Verificare PSI|autotext-BUILDING-2B10AEDE-0AFA-4A48-89F5-ECCD95B2C7E9|NU
+C|Expert Tehnic|autotext-PROJECT-4438B630-1061-EC45-B102-6E41140D1EDB|NUME EXPERT
+C|Versiunea ROtemplate|autotext-PROJECT-829B6F28-6144-9745-93B6-0635B419D684|29`;
+  const PI_E = '<####>';
+  L.PI_KEYS = PI_KEYS.split('\n').map((l) => { const [k, ui, db, v] = l.split('|'); return { k, ui, db, v }; });
+  const up = (s) => String(s ?? '').trim().toLocaleUpperCase('ro-RO');
+  const cdata = (s) => String(s).replace(/]]>/g, ']]]]><![CDATA[>');
+  /* XML complet; values: chei DBKey sau UIKey → text ('' = gol) */
+  L.projectInfoXml = (values) => {
+    const val = (r) => { let v = values[r.db]; if (v === undefined) v = values[r.ui]; if (v === undefined) v = r.v; v = String(v ?? '').trim(); return v ? cdata(v) : PI_E; };
+    const block = (tag, rows) => rows.map((r, i) => `<${tag}${i + 1}>\n<UIKey>\n<![CDATA[${r.ui}]]>\n</UIKey>\n<DBKey>\n<![CDATA[${r.db}]]>\n</DBKey>\n<value>\n<![CDATA[${val(r)}]]>\n</value>\n</${tag}${i + 1}>\n`).join('');
+    const fix = L.PI_KEYS.filter((r) => r.k === 'F'), cus = L.PI_KEYS.filter((r) => r.k === 'C');
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<ProjectInfo>\n<Version val="3"/>\n<FixKeys val="${fix.length}">\n${block('Fix', fix)}</FixKeys>\n<CustomKeys val="${cus.length}">\n${block('Custom', cus)}</CustomKeys>\n</ProjectInfo>\n`;
+  };
+  L.FIRMA_CARTUS = { arhideea: 'ATELIER ARHIDEEA SRL', bia: 'BIA OPREA CRISTIAN DANIEL' };
+  L.FAZE = ['D.T.A.C.', 'D.T.A.D.', 'D.T.O.E.', 'P.T.+D.E.', 'D.T.A.C.+P.T.+D.E.', 'S.F.', 'D.A.L.I.', 'P.U.Z.', 'P.U.D.', 'RELEVEU', 'D.T.A.C. (modificare)'];
+  /* valori calculate din ofertă / contract / CU / client — fiecare se poate suprascrie în o.proiect */
+  L.cartusAuto = (o, ctx = {}) => {
+    const c = o.contract || {}, b = c.ben || {}, cu = ctx.cu || {}, cl = ctx.client || {};
+    const now = ctx.today || new Date().toISOString().slice(0, 10);
+    const ben = b.tip === 'PJ' ? (b.denumire || o.clientNume) : (b.nume || o.clientNume);
+    const amp = c.amplasament || cu.amplasament || o.adresa || '';
+    const cf = c.cf || cu.cf || '';
+    return {
+      titlu: up(c.investitie || cu.scop || o.obiectiv),
+      cladire: up(o.obiectiv),
+      faza: 'D.T.A.C.',
+      dataProiect: now.slice(5, 7) + '.' + now.slice(0, 4),
+      beneficiar: up(ben),
+      benAdresa: b.tip === 'PJ' ? (b.sediu || cl.adresa || '') : (b.domiciliu || cl.adresa || ''),
+      benTel: b.tel || cl.tel || '', benEmail: b.email || cl.email || '',
+      amplasament: up(amp), localitate: up(o.localitate || cl.localitate), judet: '',
+      cf: String(cf), nrCad: String(c.nrCad || cu.nrCad || ''), teren: cu.suprafataTeren ? String(cu.suprafataTeren) : '',
+      categorie: 'CC1',
+    };
+  };
+  L.cartusValues = (o, ctx = {}) => {
+    const a = L.cartusAuto(o, ctx), p = o.proiect || {};
+    const g = (k) => (p[k] !== undefined && String(p[k]).trim() !== '' ? String(p[k]).trim() : (a[k] ?? ''));
+    const firma = L.FIRMA_CARTUS[o.firma === 'arhideea' ? 'arhideea' : 'bia'];
+    const arh = 'ARH. OPREA CRISTIAN';
+    const cf = g('cf'), loc = g('localitate'), jud = g('judet');
+    const addr1 = [g('amplasament'), cf ? 'C.F. ' + cf : ''].filter(Boolean).join(', ');
+    const terenRaw = g('teren'); const teren = terenRaw && /^[\d.,\s]+$/.test(terenRaw) ? terenRaw.trim() + ' mp' : terenRaw;
+    const benAdr = g('benAdresa');
+    const v = {
+      PROJECTNAME: g('titlu'), PROJECTNUMBER: g('nrProiect'), PROJECTSTATUS: g('faza'), 'Project Date': g('dataProiect'),
+      SITE_NAME: ['TEREN', g('amplasament'), cf ? 'C.F. ' + cf : '', loc].filter(Boolean).join(' ').replace(/ C\.F\./, ', C.F.'),
+      SITE_ID: g('nrCad'), SITEADDRESS1: addr1, SITECITY: loc, SITESTATE: jud, SITECOUNTRY: 'Romania',
+      SITEFULLADDRESS: [addr1, loc, jud, 'Romania'].filter(Boolean).join(' '),
+      SITEGROSSAREA: teren, BUILDING_NAME: g('cladire'),
+      CLIENT_FULLNAME: g('beneficiar'), CLIENT_GIVENNAME: g('beneficiar'),
+      CLIENTADDRESS1: benAdr, CLIENTFULLADDRESS: benAdr ? benAdr + ' Romania' : '', CLIENTCOUNTRY: benAdr ? 'Romania' : '',
+      CLIENTPHONE: g('benTel'), CLIENTEMAIL: g('benEmail'),
+      CONTACT_FULLNAME: arh, CONTACT_GIVENNAME: arh, CAD_TECHNICIAN_FULLNAME: arh, CAD_TECHNICIAN_GIVENNAME: arh, 'Șef proiect': arh,
+      CONTACTCOMPANY: firma, 'Proiectant general': firma, 'Proiectant arhitectură': firma,
+      CONTACTFULLADDRESS: '', CONTACTADDRESS1: '', CONTACTCITY: '', CONTACTSTATE: '', CONTACTPOSTCODE: '', CONTACTPHONE: '', CONTACTWEB: '',
+      'Categoria de importanță': g('categorie'),
+      'Proiectant structură': g('rez'), 'Proiectant de specialitate': g('inst'),
+    };
+    // câmpuri tehnice: doar dacă sunt completate, altfel rămân ca în template
+    [['Nume Verificator', 'verificator'], ['Expert Tehnic', 'expert'], ['Executant', 'executant'], ['Coordonator proiect', 'coordonator'], ['Clasa de importanță', 'clasa'], ['Grad de rezistență la foc', 'grf'], ['POT', 'pot'], ['CUT', 'cut'], ['Arie construită la sol', 'ac'], ['Arie construită desfășurată', 'acd'], ['Suprafața utilă', 'su'], ['Verificare PSI', 'psi']].forEach(([key, k]) => { if (String(p[k] ?? '').trim()) v[key] = String(p[k]).trim(); });
+    return v;
+  };
+
   if (typeof module !== 'undefined') module.exports = L; else root.L = L;
 })(typeof window !== 'undefined' ? window : globalThis);

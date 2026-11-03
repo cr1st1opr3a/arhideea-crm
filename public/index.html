@@ -210,6 +210,13 @@ const S = {
 const DEF_SETTINGS = {
   semnatura: 'Arh. Cristian Oprea', firmaImplicita: 'bia', tarifArh: 25, tarifRez: 7, tarifInst: 4, costMp: 1200, tarifOrar: 40,
   nextContract: { arhideea: 237, bia: 17 },
+  colaboratori: [
+    { rol: 'rezistență', nume: 'ing. Adrian Cazacu', firma: 'ADRIAN CAZACU PFA' },
+    { rol: 'rezistență', nume: 'ing. Lucian Rozorea', firma: 'SC ROZINI SRL' },
+    { rol: 'rezistență', nume: 'ing. Fejer Arpad', firma: 'FEJER E.S SRL' },
+    { rol: 'rezistență', nume: 'ing. Cătălin Caraza', firma: 'INGINERIE CREATIVA SRL' },
+    { rol: 'instalații', nume: 'dr. ing. Cosmin Ioanovici', firma: '' },
+  ],
   firme: { arhideea: { nume: 'SC ATELIER ARHIDEEA SRL' }, bia: { nume: 'BIA Oprea Cristian Daniel', sediu: '', cif: '', iban: '', banca: '' } },
 };
 const sett = () => ({ ...DEF_SETTINGS, ...S.settings, firme: { ...DEF_SETTINGS.firme, ...(S.settings.firme || {}) }, nextContract: { ...DEF_SETTINGS.nextContract, ...(S.settings.nextContract || {}) } });
@@ -492,6 +499,8 @@ function renderForm() {
     : `<p class="sub" style="margin:0">Când proiectul e gata, copiază calculul și trece suprafețele reale ca să ai suma finală pentru arhitectură.</p><div><button class="btn" id="finStart">Copiază calculul ofertei și începe</button></div>`}
   </div></details>` : ''}
 
+  ${d.anexa ? '' : cartusCard(op)}
+
   <details class="card" data-k="cu" ${op('cu', cuFor(d.id).length > 0)}><summary>Certificat de urbanism și avize <span class="sub" id="cuSum"></span></summary><div class="bd" id="cuBody"></div></details>
 
   ${d.anexa ? '' : `<details class="card" data-k="ctr" ${op('ctr', !!d.contract)}><summary>Contract <span class="sub">${d.contract?.nr ? 'nr. ' + esc(d.contract.nr) + (d.contract.data ? ' / ' + L.dataRo(d.contract.data) : '') : 'netransformată'}</span></summary><div class="bd" id="ctrBody">${contractEditor()}</div></details>`}
@@ -530,6 +539,46 @@ function forfEditor() {
   return `<div class="rows"><table class="ed"><thead><tr><th style="width:26%">Livrabil</th><th>Descriere</th><th style="width:100px">Cost €</th><th style="width:16%">Durată</th><th></th></tr></thead><tbody>
   ${(d.forfetar || []).map((r, i) => `<tr><td><textarea data-p="forfetar.${i}.den" rows="2">${esc(r.den)}</textarea></td><td><textarea data-p="forfetar.${i}.desc" rows="2">${esc(r.desc)}</textarea></td><td class="nn"><input data-p="forfetar.${i}.cost" data-num="1" value="${esc(r.cost)}"></td><td><textarea data-p="forfetar.${i}.durata" rows="2">${esc(r.durata)}</textarea></td><td><button class="x" data-del="forfetar.${i}">×</button></td></tr>`).join('')}
   </tbody></table></div><div><button class="btn small" data-add="forfetar">+ Livrabil</button></div>`;
+}
+
+const ROLURI = ['rezistență', 'instalații', 'verificator', 'expert', 'executant'];
+const ROL_KEY = { 'rezistență': 'rez', 'instalații': 'inst', verificator: 'verificator', expert: 'expert', executant: 'executant' };
+const colabTxt = (c) => (c.firma || c.nume || '').trim();
+function colabList(rol) {
+  const out = new Map();
+  (sett().colaboratori || []).filter((c) => c.rol === rol && colabTxt(c)).forEach((c) => out.set(norm(colabTxt(c)), { v: colabTxt(c), l: c.firma ? c.nume : '' }));
+  const regK = { 'rezistență': 'rez', 'instalații': 'inst' }[rol];
+  if (regK) S.registru.forEach((r) => { const v = String(r[regK] || '').trim(); if (v && !out.has(norm(v))) out.set(norm(v), { v, l: 'din registru' }); });
+  [...S.offers.values()].forEach((o) => { const v = String(o.proiect?.[ROL_KEY[rol]] || '').trim(); if (v && !out.has(norm(v))) out.set(norm(v), { v, l: '' }); });
+  return [...out.values()];
+}
+const cartusCtx = (d) => ({ client: S.clients.get(d.clientId), cu: cuFor(d.id)[0], today: todayIso() });
+function cartusCard(op) {
+  const d = S.draft; const a = L.cartusAuto(d, cartusCtx(d)); const p = d.proiect || {};
+  const pf = (k, lbl, opts = {}) => field(lbl, inp('proiect.' + k, { ph: opts.ph ?? a[k] ?? '', list: opts.list }));
+  const dl = (id, rol) => `<datalist id="${id}">${colabList(rol).map((x) => `<option value="${esc(x.v)}"${x.l ? ` label="${esc(x.l)}"` : ''}>`).join('')}</datalist>`;
+  return `<details class="card" data-k="cart" ${op('cart', !!d.contract)}><summary>Proiect, colaboratori și cartuș Archicad <span class="sub">${p.nrProiect ? 'proiect ' + esc(p.nrProiect) : 'fără nr. proiect'}${p.rez ? ' · rez. ' + esc(p.rez) : ''}${p.inst ? ' · inst. ' + esc(p.inst) : ''}</span></summary><div class="bd">
+    <div class="sub">Câmpurile goale se iau automat din contract, CU și client (textul gri). Scrii doar ce vrei să schimbi.</div>
+    <div class="grid">${pf('nrProiect', 'Nr. proiect', { ph: 'ex. 16/2026' })}${pf('faza', 'Fază', { list: 'dlFaza' })}${pf('dataProiect', 'Data proiect')}${pf('categorie', 'Categoria de importanță')}</div>
+    <div class="grid">${pf('titlu', 'Denumire proiect (din CU)')}${pf('cladire', 'Denumire clădire')}</div>
+    <div><b style="font-size:13px">Colaboratori</b> <span class="sub">lista se ține în Setări; poți scrie și alt nume</span></div>
+    <div class="grid">${pf('rez', 'Proiectant structură', { ph: '', list: 'dlRez' })}${pf('inst', 'Proiectant instalații (de specialitate)', { ph: '', list: 'dlInst' })}${pf('verificator', 'Verificator', { ph: '', list: 'dlVer' })}${pf('expert', 'Expert tehnic', { ph: '', list: 'dlExp' })}${pf('executant', 'Executant', { ph: '', list: 'dlExec' })}${pf('coordonator', 'Coordonator proiect', { ph: '' })}</div>
+    <details data-k="cartAmp" ${op('cartAmp', false)}><summary class="sub" style="cursor:pointer">Amplasament și beneficiar în cartuș</summary>
+      <div class="grid">${pf('amplasament', 'Adresă amplasament')}${pf('localitate', 'Localitate (ex. MUN. BRAȘOV)')}${pf('judet', 'Județ', { ph: 'ex. JUD. BRAȘOV' })}${pf('cf', 'Nr. CF')}${pf('nrCad', 'Nr. cadastral')}${pf('teren', 'Suprafață teren (mp)')}</div>
+      <div class="grid">${pf('beneficiar', 'Beneficiar')}${pf('benAdresa', 'Adresă beneficiar')}${pf('benTel', 'Telefon beneficiar')}${pf('benEmail', 'E-mail beneficiar')}</div>
+    </details>
+    <details data-k="cartTeh" ${op('cartTeh', false)}><summary class="sub" style="cursor:pointer">Date tehnice (opțional — goale rămân ca în template)</summary>
+      <div class="grid">${pf('clasa', 'Clasa de importanță', { ph: '' })}${pf('grf', 'Grad rezistență la foc', { ph: '' })}${pf('psi', 'Verificare PSI', { ph: 'NU' })}${pf('pot', 'POT', { ph: '' })}${pf('cut', 'CUT', { ph: '' })}${pf('ac', 'Arie construită la sol', { ph: '' })}${pf('acd', 'Arie desfășurată', { ph: '' })}${pf('su', 'Suprafață utilă', { ph: '' })}</div>
+    </details>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" id="dlPI">Descarcă Project Info .xml</button><span class="sub">în Archicad: File › Info › Project Info › Import${String(p.nrProiect || '').trim() ? '' : ' · lipsește nr. proiectului'}</span></div>
+    <datalist id="dlFaza">${L.FAZE.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>${dl('dlRez', 'rezistență')}${dl('dlInst', 'instalații')}${dl('dlVer', 'verificator')}${dl('dlExp', 'expert')}${dl('dlExec', 'executant')}
+  </div></details>`;
+}
+async function downloadProjectInfo() {
+  flushSave();
+  const d = S.draft; const v = L.cartusValues(d, cartusCtx(d));
+  const name = fileSafe(`PROJECT INFO - ${v.CLIENT_FULLNAME || d.clientNume || ''} ${String(d.proiect?.nrProiect || '').replace(/\//g, '-')}`) + '.xml';
+  await save(name, new Blob([L.projectInfoXml(v)], { type: 'application/xml' }));
 }
 
 function contractEditor() {
@@ -625,6 +674,7 @@ function bindForm() {
     if (b.id === 'dlCtr') { await downloadContract(); return; }
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
     if (b.id === 'scanGo') { await scanDocs(); return; }
+    if (b.id === 'dlPI') { await downloadProjectInfo(); return; }
   };
 }
 
@@ -936,6 +986,13 @@ function viewSettings() {
       <div class="sub">Importă fișierul JSON exportat din versiunea veche (sau un backup). Documentele existente cu același id sunt actualizate.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="impFile" accept="application/json,.json"><button class="btn small" id="impGo">Importă</button><button class="btn small" id="expGo">Descarcă backup JSON</button><span class="sub" id="impMsg"></span></div>
     </div></div>
+    <div class="card"><div class="hd">Colaboratori (pentru cartuș și proiecte)</div><div class="bd">
+      <div class="sub">Apar ca sugestii în ofertă, la „Proiect, colaboratori și cartuș”. În cartuș se scrie firma (sau numele, dacă nu are firmă).</div>
+      <div class="rows"><table class="ed"><thead><tr><th style="width:130px">Rol</th><th>Nume</th><th>Firmă (în cartuș)</th><th></th></tr></thead><tbody>
+      ${(s.colaboratori || []).map((c, i) => `<tr><td><select data-sp="colaboratori.${i}.rol">${ROLURI.map((r) => `<option ${c.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td><td><input data-sp="colaboratori.${i}.nume" value="${esc(c.nume || '')}"></td><td><input data-sp="colaboratori.${i}.firma" value="${esc(c.firma || '')}"></td><td><button class="x" data-coldel="${i}" title="Șterge">×</button></td></tr>`).join('')}
+      </tbody></table></div>
+      <div><button class="btn small" id="colAdd">+ Colaborator</button></div>
+    </div></div>
     <div class="card"><div class="hd">Numere de contract</div><div class="bd"><div class="grid">${sf('nextContract.arhideea', 'Următorul nr. – SRL')}${sf('nextContract.bia', 'Următorul nr. – BIA')}</div><div class="sub">Se măresc automat când descarci un contract.</div></div></div>
   </div><div>
     <div class="card"><div class="hd">Date BIA Oprea Cristian Daniel (pentru contracte)</div><div class="bd"><div class="grid">
@@ -947,6 +1004,9 @@ function viewSettings() {
   $('#impGo').onclick = async () => { const f = $('#impFile').files[0]; if (!f) return; $('#impMsg').textContent = 'Import…'; try { const data = JSON.parse(await f.text()); const r = await api('POST', 'import', data); $('#impMsg').textContent = 'Importate: ' + r.count + ' documente. Reîncarc…'; setTimeout(() => location.reload(), 1200); } catch (e) { $('#impMsg').textContent = 'Eroare: ' + e.message; } };
   $('#expGo').onclick = async () => { try { const data = await api('GET', 'export'); await save('Backup CRM Arhideea ' + todayIso() + '.json', new Blob([JSON.stringify(data)], { type: 'application/json' })); } catch (e) { toast('Eroare: ' + e.message); } };
   let t = null;
+  const colSave = (list) => { const ns = clean({ ...DEF_SETTINGS, ...S.settings }); ns.colaboratori = list; S.settings = ns; write('settings', 'main', ns); viewSettings(); };
+  $('#colAdd').onclick = () => colSave([...(sett().colaboratori || []), { rol: 'rezistență', nume: '', firma: '' }]);
+  $$('[data-coldel]').forEach((b) => (b.onclick = () => { const l = [...(sett().colaboratori || [])]; l.splice(+b.dataset.coldel, 1); colSave(l); }));
   $('#main').oninput = $('#main').onchange = (e) => { const p = e.target.dataset.sp; if (!p) return; const ns = clean({ ...DEF_SETTINGS, ...S.settings }); let v = e.target.value; if (/^(tarif|costMp|nextContract)/.test(p)) v = L.n(v); setPath(ns, p, v); S.settings = ns; clearTimeout(t); t = setTimeout(() => write('settings', 'main', ns).then(() => ($('#ssaved') && ($('#ssaved').textContent = 'Salvat'))), 600); };
 }
 
@@ -1014,7 +1074,7 @@ const cuTimers = {};
 function saveCu(c) { S.cu.set(c.id, c); clearTimeout(cuTimers[c.id]); cuTimers[c.id] = setTimeout(() => write('cu', c.id, c), 700); updateBadge(); }
 
 const CU_PROMPT = `Documentul atașat este un Certificat de urbanism (CU) emis în România. Extrage datele în acest format JSON:
-{"nr":"numărul certificatului","dataEmitere":"AAAA-LL-ZZ","valabilitateLuni":număr de luni de valabilitate (convertește din zile/ani dacă e cazul),"dataExpirare":"AAAA-LL-ZZ doar dacă e scrisă explicit, altfel șir gol","emitent":"autoritatea emitentă","solicitant":"","scop":"scopul emiterii / denumirea lucrării","amplasament":"adresa imobilului","cf":"număr carte funciară","nrCad":"număr cadastral sau topografic","regim":"pe scurt, regimul tehnic relevant (POT, CUT, regim de înălțime, retrageri) într-un rând","avize":[{"den":"denumirea avizului / acordului / studiului cerut","categorie":"utilități | mediu | securitate și sănătate | cultură | alte avize | studii | documente"}]}
+{"nr":"numărul certificatului","dataEmitere":"AAAA-LL-ZZ","valabilitateLuni":număr de luni de valabilitate (convertește din zile/ani dacă e cazul),"dataExpirare":"AAAA-LL-ZZ doar dacă e scrisă explicit, altfel șir gol","emitent":"autoritatea emitentă","solicitant":"","scop":"scopul emiterii / denumirea lucrării","amplasament":"adresa imobilului","cf":"număr carte funciară","nrCad":"număr cadastral sau topografic","suprafataTeren":"suprafața terenului în mp, doar numărul (ex. 691), sau șir gol","regim":"pe scurt, regimul tehnic relevant (POT, CUT, regim de înălțime, retrageri) într-un rând","avize":[{"den":"denumirea avizului / acordului / studiului cerut","categorie":"utilități | mediu | securitate și sănătate | cultură | alte avize | studii | documente"}]}
 În "avize" pune TOATE avizele și acordurile bifate sau cerute (utilități: apă, canalizare, energie electrică, gaze, telefonizare, salubritate; securitate la incendiu, protecție civilă, sănătatea populației; actul autorității de mediu; avize/acorduri specifice; studii de specialitate precum studiu geotehnic, ridicare topografică vizată OCPI; alte documente cerute pentru autorizare). Nu include taxe și nu include elemente nebifate. Pune doar ce scrie în document.`;
 
 async function uploadFile(file) {
@@ -1041,7 +1101,7 @@ function cuEditor(c) {
       <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${c.fileKey ? `<a class="btn small" href="/api/files/${encodeURIComponent(c.fileKey)}" target="_blank" rel="noopener">Deschide ${esc(c.fileName || 'fișierul')}</a><button class="btn small" data-cuai="${c.id}">Recitește</button>` : ''}<button class="btn small" data-cuctr="${c.id}">Preia în contract</button><button class="btn small danger" data-cudel="${c.id}">Șterge</button></span></div>
     <div class="grid">${f('nr', 'Nr. CU')}${f('dataEmitere', 'Emis la', 'date')}${f('valabilitateLuni', 'Valabil (luni)')}${field('Expiră la' + (c.prelungiri?.length ? ' (inițial)' : c.dataExpirare ? '' : ' (calculat)'), `<input data-cf="dataExpirare" data-cu="${c.id}" type="date" value="${esc(cuExp0(c))}">`)}${f('emitent', 'Emitent')}</div>
     ${plBlock(c)}
-    <div class="grid">${f('scop', 'Scop / denumirea lucrării')}${f('amplasament', 'Amplasament')}${f('cf', 'Nr. CF')}${f('nrCad', 'Nr. cadastral')}</div>
+    <div class="grid">${f('scop', 'Scop / denumirea lucrării')}${f('amplasament', 'Amplasament')}${f('cf', 'Nr. CF')}${f('nrCad', 'Nr. cadastral')}${f('suprafataTeren', 'Suprafață teren (mp)')}</div>
     ${c.regim ? `<div class="sub">Regim: ${esc(c.regim)}</div>` : ''}
     <div class="prog"><i style="width:${st.tot ? Math.round(st.ok / st.tot * 100) : 0}%"></i></div>
     <div class="rows"><table class="ed"><thead><tr><th></th><th>Aviz / acord / studiu</th><th style="width:140px">Obținut la</th><th style="width:120px">Nr.</th><th>Observații</th><th></th></tr></thead><tbody>
@@ -1117,7 +1177,7 @@ async function readCu(c, msg) {
   msg.textContent = 'Citesc certificatul… (10–30 secunde)';
   try {
     const r = await api('POST', 'ai', { prompt: CU_PROMPT, fileKeys: [c.fileKey] });
-    ['nr', 'dataEmitere', 'emitent', 'solicitant', 'scop', 'amplasament', 'cf', 'nrCad', 'regim'].forEach((k) => { if (r[k]) c[k] = String(r[k]).trim(); });
+    ['nr', 'dataEmitere', 'emitent', 'solicitant', 'scop', 'amplasament', 'cf', 'nrCad', 'suprafataTeren', 'regim'].forEach((k) => { if (r[k]) c[k] = String(r[k]).trim(); });
     if (L.n(r.valabilitateLuni)) c.valabilitateLuni = L.n(r.valabilitateLuni);
     if (r.dataExpirare) { c.dataExpirare = r.dataExpirare; c._expAuto = false; }
     const have = new Set((c.avize || []).map((a) => norm(a.den)));
