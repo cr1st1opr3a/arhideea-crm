@@ -1,7 +1,7 @@
 // REST API: documents (D1), files (KV), AI reading of documents (Anthropic).
 // Authentication is enforced by functions/_middleware.js before this runs.
 
-const COLS = new Set(['offers', 'clients', 'payments', 'registru', 'settings', 'cu', 'cereri']);
+const COLS = new Set(['offers', 'clients', 'payments', 'registru', 'settings', 'cu', 'cereri', 'cheltuieli']);
 const MAX_FILE = 20 * 1024 * 1024;
 const MODEL = 'claude-sonnet-5-5';
 
