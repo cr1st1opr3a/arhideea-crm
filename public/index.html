@@ -655,6 +655,7 @@ function bindForm() {
     const el = e.target;
     if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
     if (el.dataset.p === 'firma') { S.draft.tva.arh = el.value === 'arhideea'; renderForm(); renderSummary(); scheduleSave(); }
+    if (el.dataset.p === 'contract.nr') { reserveContractNr(S.draft); if (['ciornă', 'trimisă'].includes(S.draft.status) && S.draft.contract.nr) { S.draft.status = 'contractată'; renderForm(); renderSummary(); } scheduleSave(); }
     if (el.dataset.p === 'contract.ben.tip' || el.dataset.p === 'moneda') { renderForm(); renderSummary(); scheduleSave(); }
     if (el.dataset.p === 'status') renderSummary();
   };
@@ -670,7 +671,7 @@ function bindForm() {
     if (b.id === 'finStart') { d.final = { zone: clean(d.zone), data: L.ofertaNoua(sett()).data, note: '' }; if (!['contractată', 'în lucru'].includes(d.status)) {} renderForm(); renderSummary(); scheduleSave(); return; }
     if (b.id === 'finDel') { if (b.dataset.sure) { d.final = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
     if (b.id === 'toCtr') { d.contract = { nr: '', data: L.ofertaNoua(sett()).data, ben: { tip: 'PF', nume: d.clientNume }, investitie: '', amplasament: '', cf: '', nrCad: '', regim: {} }; const c = S.clients.get(d.clientId); if (c) Object.assign(d.contract.ben, { tel: c.tel || '', email: c.email || '', domiciliu: c.adresa || '', cnp: c.cnp || '', ciSerie: c.ciSerie || '', ciNr: c.ciNr || '' }); renderForm(); scheduleSave(); return; }
-    if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); renderForm(); scheduleSave(); return; }
+    if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); reserveContractNr(d); if (d.status === 'ciornă' || d.status === 'trimisă') d.status = 'contractată'; renderForm(); renderSummary(); scheduleSave(); toast('Contract nr. ' + d.contract.nr + ' înregistrat'); return; }
     if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
     if (b.id === 'dlCtr') { await downloadContract(); return; }
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
@@ -857,6 +858,11 @@ async function downloadOffer() {
     const ok = await save(fileSafe(`Oferta pentru servicii de proiectare ${d.clientNume} ${d.localitate}`) + '.docx', blob);
     if (ok && d.status === 'ciornă') { d.status = 'trimisă'; scheduleSave(); renderForm(); renderSummary(); }
   } catch (e) { toast('Eroare la generarea ofertei: ' + e.message, 5000); console.error(e); }
+}
+/* rezervă numărul de contract: dacă nr. folosit >= următorul din Setări, contorul firmei avansează */
+function reserveContractNr(d) {
+  if (!d?.contract?.nr) return; const s = sett(); const nrv = parseInt(String(d.contract.nr).replace(/^\D+/, ''), 10);
+  if (nrv && nrv >= s.nextContract[d.firma]) { const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, [d.firma]: nrv + 1 }; S.settings = ns; write('settings', 'main', ns); }
 }
 async function downloadContract() {
   const d = S.draft;
