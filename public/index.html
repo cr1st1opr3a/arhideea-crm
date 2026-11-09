@@ -726,6 +726,10 @@ function renderSummary() {
   <div class="actions">
     <button class="btn primary" id="dlOff">Descarcă oferta .docx</button>
     <button class="btn" id="dupOff">Duplică (ofertă nouă pe baza acesteia)</button>
+    <button class="btn" id="mrgOff">Unește cu altă ofertă (dublură)…</button>
+    <div id="mrgBox" style="display:none;margin-top:6px"><div class="sub" style="margin-bottom:6px">Alege oferta care rămâne. Plățile, CU-ul, cheltuielile și cererile de aici se mută acolo; numărul de contract se preia dacă acolo lipsește; oferta aceasta se șterge.</div>
+      <input list="dlMrgOff" id="mrgIn" placeholder="client · obiectiv · dată…" style="width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font:inherit"><datalist id="dlMrgOff"></datalist>
+      <button class="btn primary small" id="mrgGo" style="margin-top:6px">Unește în oferta aleasă</button></div>
     <button class="btn ghost danger" id="delOff">Șterge oferta</button>
   </div>`;
   $('#dlOff').onclick = downloadOffer;
@@ -733,6 +737,9 @@ function renderSummary() {
   const pin = $('[data-p="progres"]', $('#sum')); if (pin) pin.onchange = () => { S.draft.progres = pin.value === '' ? '' : L.n(pin.value); scheduleSave(); renderSummary(); };
   const st = $('#stmt'); if (st) st.onclick = () => { flushSave(); printStatement(S.draft); };
   $('#dupOff').onclick = () => { flushSave(); newOffer(null, S.draft); toast('Ofertă duplicată'); };
+  let pick = null;
+  $('#mrgOff').onclick = () => { const bx = $('#mrgBox'); bx.style.display = bx.style.display === 'none' ? 'block' : 'none'; if (!pick) { pick = offerPickList(S.draft.id, S.draft.clientId); $('#dlMrgOff').innerHTML = pick.map((x) => `<option value="${esc(x.l)}">`).join(''); } $('#mrgIn').focus(); };
+  $('#mrgGo').onclick = async () => { const b = $('#mrgGo'); const hit = (pick || []).find((x) => x.l === $('#mrgIn').value.trim()); if (!hit) { toast('Alege oferta din listă'); return; } if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Sigur? Oferta aceasta se șterge'; return; } flushSave(); b.disabled = true; const id = S.draft.id; clearTimeout(S.saveT); S.draft = null; await mergeOffers(hit.id, id); toast('Ofertele au fost unite'); go('oferta', hit.id); };
   $('#delOff').onclick = (e) => { const b = e.currentTarget; if (b.dataset.sure) { const id = S.draft.id; S.draft = null; S.offers.delete(id); remove('offers', id); go('oferte'); toast('Oferta a fost ștearsă'); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou pentru ștergere'; } };
 }
 
@@ -1475,6 +1482,33 @@ function viewContracts() {
   $$('tr[data-href]').forEach((r) => (r.onclick = () => { location.hash = r.dataset.href; }));
 }
 
+/* ---------------- OFERTE: etichete pentru alegere + unire ---------------- */
+function offerPickList(exceptId, clientId) {
+  const seen = {}; const arr = [...S.offers.values()].filter((o) => o.id !== exceptId)
+    .sort((a, b) => ((b.clientId === clientId) - (a.clientId === clientId)) || norm(a.clientNume || '').localeCompare(norm(b.clientNume || '')) || (b.data || '').localeCompare(a.data || ''));
+  return arr.map((o) => { let l = [o.clientNume || '—', o.anexa ? 'Anexa ' + o.anexa.nr : o.obiectiv || '', L.dataRo(o.data) || '', o.contract?.nr ? 'contract ' + o.contract.nr : o.status || ''].filter(Boolean).join(' · '); if (seen[l]) l += ' #' + (++seen[l]); else seen[l] = 1; return { id: o.id, l }; });
+}
+async function mergeOffers(keepId, dropId) {
+  const k = S.offers.get(keepId), d = S.offers.get(dropId); if (!k || !d || keepId === dropId) return;
+  const notes = [k.noteInterne, d.noteInterne].filter(Boolean);
+  if (d.contract?.nr || d.contract) {
+    if (!k.contract?.nr) { const kc = k.contract || {}; const filled = Object.fromEntries(Object.entries(kc).filter(([, v]) => v !== '' && v != null)); k.contract = { ...(d.contract || {}), ...filled, nr: d.contract?.nr || kc.nr || '' }; if (d.contract?.nr) k.firma = d.firma; k.tva = { ...(k.tva || {}), arh: k.firma === 'arhideea' }; }
+    else if (d.contract?.nr && String(d.contract.nr) !== String(k.contract.nr)) notes.push('La unire, cealaltă ofertă avea contractul nr. ' + d.contract.nr);
+  }
+  const rank = ['respinsă', 'ciornă', 'arhivă', 'trimisă', 'acceptată', 'contractată', 'în lucru', 'finalizată'];
+  if (rank.indexOf(d.status) > rank.indexOf(k.status)) k.status = d.status;
+  if ((k.progres === undefined || k.progres === '') && d.progres !== undefined) k.progres = d.progres;
+  if (!k.clientId && d.clientId) { k.clientId = d.clientId; k.clientNume = d.clientNume; }
+  k.noteInterne = [...new Set(notes.join('\n').split('\n'))].filter((l) => l && !/^Creată la sincronizarea cu registrul/.test(l)).join('\n');
+  const jobs = [write('offers', k.id, k)];
+  S.payments.forEach((p) => { if (p.offerId === dropId) { p.offerId = keepId; jobs.push(write('payments', p.id, p)); } });
+  S.cu.forEach((u) => { if (u.offerId === dropId) { u.offerId = keepId; jobs.push(write('cu', u.id, u)); } });
+  S.ch.forEach((x) => { if (x.offerId === dropId) { x.offerId = keepId; jobs.push(write('cheltuieli', x.id, x)); } });
+  try { const cer = await api('GET', 'c/cereri'); cer.filter((c) => c.offerId === dropId).forEach((c) => { c.offerId = keepId; jobs.push(api('PUT', 'c/cereri/' + encodeURIComponent(c.id), c)); }); } catch (e) { /* colecția poate lipsi */ }
+  await Promise.all(jobs);
+  S.offers.delete(dropId); await remove('offers', dropId);
+}
+
 /* ---------------- SINCRONIZARE CU „Clienti Arhideea.xlsx” ---------------- */
 function readRegistryXlsx(buf) {
   const wb = XLSX.read(buf, { type: 'array' }); const out = [];
@@ -1543,12 +1577,20 @@ function viewSync() {
  ${sy.msg ? `<div class="card" style="margin-bottom:12px"><div class="bd"><b>${esc(sy.msg)}</b> <a href="#contracte" id="syDone">Înapoi la contracte</a></div></div>` : ''}
   ${sy.orphan.length ? `<div class="card" style="margin-bottom:12px"><div class="bd"><b>Contracte din platformă care nu apar în registru</b> (adaugă-le în Excel): ${sy.orphan.map((p) => `${p.f === 'arhideea' ? 'SRL' : 'BIA'} ${p.n} – ${esc(p.name)}`).join(' · ')}</div></div>` : ''}
   ${sy.conflicts.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="bd"><b>Numere din platformă care în registru aparțin altui client</b> (nu se modifică automat):<br>${sy.conflicts.map(({ p, r }) => `${p.f === 'arhideea' ? 'SRL' : 'BIA'} ${p.n}: platforma „${esc(p.name)}” · registrul „${esc(r.beneficiar)}”${r.contract ? ' (' + esc(r.contract) + ')' : ''}`).join('<br>')}</div></div>` : ''}
-  <div class="tablebox"><table class="list"><thead><tr><th></th><th>Nr.</th><th>Firmă</th><th>Beneficiar (registru)</th><th>Obiect</th><th>Acțiune</th></tr></thead><tbody>
-  ${show.map((x) => `<tr><td>${x.act === 'conf' ? '⚠︎' : `<input type="checkbox" data-sy="${sy.items.indexOf(x)}" ${x.sel ? 'checked' : ''}>`}</td><td class="num" data-v="${x.r.n}"><b>${esc(x.nrTxt)}</b><div class="sub">${esc(x.r.nrProiect)}</div></td><td><span class="tag">${x.r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(x.r.beneficiar)}</b>${x.r.contract ? `<div class="sub">${esc(x.r.contract)}</div>` : ''}</td><td class="sub">${esc([x.r.obiect, x.r.adresa].filter(Boolean).join(' · '))}</td><td><span class="pill">${ACT[x.act]}</span><div class="sub">${esc(x.why)}</div></td></tr>`).join('')}
+  <div class="tablebox"><table class="list"><thead><tr><th></th><th>Nr.</th><th>Firmă</th><th>Beneficiar (registru)</th><th>Obiect</th><th>Acțiune</th><th>E de fapt oferta…</th></tr></thead><tbody>
+  ${show.map((x) => `<tr><td>${x.act === 'conf' ? '⚠︎' : `<input type="checkbox" data-sy="${sy.items.indexOf(x)}" ${x.sel ? 'checked' : ''}>`}</td><td class="num" data-v="${x.r.n}"><b>${esc(x.nrTxt)}</b><div class="sub">${esc(x.r.nrProiect)}</div></td><td><span class="tag">${x.r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(x.r.beneficiar)}</b>${x.r.contract ? `<div class="sub">${esc(x.r.contract)}</div>` : ''}</td><td class="sub">${esc([x.r.obiect, x.r.adresa].filter(Boolean).join(' · '))}</td><td><span class="pill">${ACT[x.act]}</span><div class="sub">${esc(x.why)}</div></td><td>${['new', 'set'].includes(x.act) ? `<input list="dlSyOff" data-syo="${sy.items.indexOf(x)}" placeholder="alege oferta existentă…" style="width:220px;padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font:inherit;font-size:13px">` : ''}</td></tr>`).join('')}
   </tbody></table></div>
+  <datalist id="dlSyOff">${(sy.pick = sy.pick || offerPickList(null, null)).map((x) => `<option value="${esc(x.l)}">`).join('')}</datalist>
   <div style="margin-top:12px;display:flex;gap:10px;align-items:center"><button class="btn primary" id="syGo">Aplică selecția</button><span class="sub" id="syMsg"></span></div>`;
   $('#bk').onclick = () => { S.sync = null; go('contracte'); }; const dn = $('#syDone'); if (dn) dn.onclick = () => { S.sync = null; };
   $$('[data-sy]').forEach((c) => (c.onchange = () => { sy.items[+c.dataset.sy].sel = c.checked; }));
+  $$('[data-syo]').forEach((i) => (i.onchange = () => {
+    const hit = sy.pick.find((x) => x.l === i.value.trim()); if (!hit) { toast('Alege o ofertă din listă'); return; }
+    const o = S.offers.get(hit.id); const x = sy.items[+i.dataset.syo];
+    x.act = 'set'; x.o = o; x.sel = true; x.why = 'asociat de tine: ' + hit.l + (o.contract?.nr && String(o.contract.nr) !== x.nrTxt ? ' (nr. ' + o.contract.nr + ' se înlocuiește cu ' + x.nrTxt + ')' : '');
+    sy.items.forEach((y) => { if (y !== x && y.act === 'set' && y.o === o) { y.act = 'new'; y.o = null; y.why = 'oferta a fost asociată altui rând – se creează'; } });
+    const yy = window.scrollY; viewSync(); window.scrollTo(0, yy);
+  }));
   const setAll = (fn) => { show.forEach((x) => (x.sel = x.act !== 'conf' && fn(x))); viewSync(); };
   $('#syAll').onclick = () => setAll(() => true); $('#syNone').onclick = () => setAll(() => false); $('#sy19').onclick = () => setAll((x) => !x.r.an || +x.r.an >= 2019);
   $('#syGo').onclick = async () => {
