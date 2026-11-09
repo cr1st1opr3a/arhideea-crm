@@ -184,7 +184,7 @@ tr.done td input:not([type=checkbox]){color:var(--muted)}
     <div class="userbox"><span id="who"></span><a href="/cdn-cgi/access/logout">Ieșire</a></div>
   </div>
   <div class="wrap"><nav class="tabs" id="tabs">
-    <button data-v="panou">Panou<span id="alertBadge"></span></button><button data-v="oferte">Oferte</button><button data-v="cu">CU &amp; avize</button><button data-v="clienti">Clienți</button><button data-v="plati">Plăți</button><button data-v="registru">Registru proiecte</button><button data-v="setari">Setări</button>
+    <button data-v="panou">Panou<span id="alertBadge"></span></button><button data-v="oferte">Oferte</button><button data-v="cu">CU &amp; avize</button><button data-v="clienti">Clienți</button><button data-v="contracte">Contracte</button><button data-v="plati">Plăți</button><button data-v="registru">Registru proiecte</button><button data-v="setari">Setări</button>
   </nav></div>
 </header>
 <main class="wrap" id="main"><div class="loading">Se încarcă baza de date…</div></main>
@@ -319,7 +319,7 @@ function route() {
   const h = (location.hash || '').slice(1);
   if (h.startsWith('o-') && S.offers.has(h.slice(2))) { S.view = 'oferta'; S.curId = h.slice(2); }
   else if (h.startsWith('c-') && S.clients.has(h.slice(2))) { S.view = 'client'; S.clientId = h.slice(2); }
-  else if (['panou', 'oferte', 'cu', 'clienti', 'plati', 'registru', 'setari', 'verificare'].includes(h)) S.view = h;
+  else if (['panou', 'oferte', 'cu', 'clienti', 'plati', 'registru', 'setari', 'verificare', 'contracte'].includes(h)) S.view = h;
   render(); window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => { if (S.ready) route(); });
@@ -329,7 +329,7 @@ function render() {
   const tab = S.view === 'oferta' ? 'oferte' : (S.view === 'client' || S.view === 'verificare') ? 'clienti' : S.view;
   $$('#tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.v === tab ? 'true' : 'false'));
   updateBadge();
-  ({ panou: viewDashboard, cu: viewCuList, oferte: viewOffers, clienti: viewClients, client: viewClient, plati: viewPayments, registru: viewRegistry, setari: viewSettings, oferta: viewEditor, verificare: viewCheck })[S.view]();
+  ({ panou: viewDashboard, cu: viewCuList, oferte: viewOffers, clienti: viewClients, client: viewClient, plati: viewPayments, registru: viewRegistry, contracte: viewContracts, setari: viewSettings, oferta: viewEditor, verificare: viewCheck })[S.view]();
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });
 
@@ -1417,6 +1417,61 @@ function bindCadru(c) {
   const dl = $('#cdDl'); if (dl) dl.onclick = async () => { try { const blob = await renderDocx('cadru', L.dataCadru(c)); await save(fileSafe('Contract cadru ' + (c.cadru.nr || '') + ' ' + c.nume) + '.docx', blob); } catch (e) { toast('Eroare: ' + e.message, 5000); } };
 }
 
+
+/* ---------------- LISTA CONTRACTELOR ---------------- */
+function contractRows() {
+  const rows = [];
+  S.offers.forEach((o) => {
+    if (!o.contract?.nr || o.anexa) return;
+    const nrs = String(o.contract.nr).trim(); const m = nrs.match(/(\d+)/); const y = (nrs.match(/\/(\d{4})/) || [])[1] || (o.contract.data || o.data || '').slice(0, 4);
+    rows.push({ kind: 'c', firma: o.firma, nr: nrs, n: m ? +m[1] : null, an: y, data: o.contract.data || '', client: o.clientNume || S.clients.get(o.clientId)?.nume || '', titlu: o.contract.investitie || o.obiectiv || '', val: L.arhFinal(o), ist: !!o.contract.istoric, status: o.status, href: 'o-' + o.id, file: o.contract.fisier || '' });
+  });
+  S.clients.forEach((c) => {
+    if (!c.cadru?.nr) return; const anx = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa);
+    const m = String(c.cadru.nr).match(/(\d+)/);
+    rows.push({ kind: 'cadru', firma: 'arhideea', nr: String(c.cadru.nr), n: m ? +m[1] : null, an: (c.cadru.data || '').slice(0, 4), data: c.cadru.data || '', client: c.nume, titlu: 'Contract-cadru · ' + anx.length + ' anex' + (anx.length === 1 ? 'ă' : 'e'), val: anx.reduce((a, o) => a + (['respinsă', 'ciornă'].includes(o.status) ? 0 : L.arhFinal(o)), 0), ist: false, status: '', href: 'c-' + c.id });
+  });
+  return rows;
+}
+function viewContracts() {
+  const f = S.ctF = S.ctF || { firma: 'arhideea', an: 'toți' };
+  const all = contractRows();
+  const ani = [...new Set(all.map((r) => r.an).filter(Boolean))].sort().reverse();
+  let list = all.filter((r) => (f.firma === 'toate' || r.firma === f.firma) && (f.an === 'toți' || r.an === f.an));
+  list.sort((a, b) => (a.firma === b.firma ? 0 : a.firma === 'arhideea' ? -1 : 1) || (b.n ?? -1) - (a.n ?? -1) || (b.an || '').localeCompare(a.an || ''));
+  // dubluri și goluri (pe firmă; BIA numerotează pe an, SRL continuu)
+  const key = (r) => r.firma + '|' + r.n + (r.firma === 'bia' ? '|' + r.an : '');
+  const cnt = {}; all.forEach((r) => { if (r.n != null) cnt[key(r)] = (cnt[key(r)] || 0) + 1; });
+  const gaps = [];
+  ['arhideea', 'bia'].forEach((fi) => {
+    if (f.firma !== 'toate' && f.firma !== fi) return;
+    const groups = {}; all.filter((r) => r.firma === fi && r.n != null).forEach((r) => { const g = fi === 'bia' ? r.an : 'toți'; (groups[g] = groups[g] || new Set()).add(r.n); });
+    Object.entries(groups).forEach(([g, set]) => {
+      if (fi === 'bia' && f.an !== 'toți' && g !== f.an) return;
+      const arr = [...set].sort((a, b) => a - b); const hi = arr[arr.length - 1]; const lo = Math.max(arr[0], hi - 40);
+      const miss = []; for (let i = lo; i <= hi; i++) if (!set.has(i)) miss.push(i);
+      if (miss.length) gaps.push(`${fi === 'arhideea' ? 'SRL' : 'BIA ' + g}: ${miss.slice(0, 40).join(', ')}${miss.length > 40 ? '…' : ''}`);
+    });
+  });
+  const dups = list.filter((r) => r.n != null && cnt[key(r)] > 1);
+  const s = sett();
+  $('#main').innerHTML = `<div class="ehead"><h2>Contracte</h2><span class="sub">${list.length} din ${all.length}</span></div>
+  <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+    <div class="chips">${[['arhideea', 'SRL'], ['bia', 'BIA'], ['toate', 'Ambele']].map(([v, l]) => `<button class="chip" data-ctf="${v}" aria-pressed="${f.firma === v}">${l}</button>`).join('')}</div>
+    <select id="ctAn" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font:inherit"><option value="toți">toți anii</option>${ani.map((a) => `<option ${f.an === a ? 'selected' : ''}>${a}</option>`).join('')}</select>
+    <span class="sub">Următorul număr: SRL <b>${s.nextContract.arhideea}</b> · BIA <b>${s.nextContract.bia}</b> (se schimbă din Setări)</span>
+  </div>
+  ${dups.length || gaps.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="bd">
+    ${dups.length ? `<div><b>Numere folosite de două ori:</b> ${[...new Set(dups.map((r) => (r.firma === 'arhideea' ? 'SRL ' : 'BIA ') + r.nr))].map(esc).join(', ')}</div>` : ''}
+    ${gaps.length ? `<div ${dups.length ? 'style="margin-top:6px"' : ''}><b>Numere lipsă din șir</b> <span class="sub">(ultimele 40 de numere; pot fi contracte neînregistrate aici sau numere sărite)</span>: ${gaps.map(esc).join(' · ')}</div>` : ''}
+  </div></div>` : ''}
+  ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Nr.</th><th>Data</th><th>Firmă</th><th>Client</th><th>Titlu / obiect</th><th class="n">Valoare arh.</th><th>Status</th></tr></thead><tbody>
+  ${list.map((r) => `<tr class="click" data-href="${r.href}" style="${r.n != null && cnt[key(r)] > 1 ? 'background:rgba(180,35,24,.08)' : ''}"><td class="num" data-v="${(r.n ?? 0) + (r.firma === 'bia' ? +r.an * 1000 : 0)}"><b>${esc(r.nr)}</b>${r.n != null && cnt[key(r)] > 1 ? ' <span class="pill" style="background:#f6d6d2;color:#8a1c12">dublură</span>' : ''}</td><td class="num">${esc(L.dataRo(r.data) || r.an || '—')}</td><td><span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(r.client)}</b></td><td>${esc(r.titlu)}${r.file ? `<div class="sub">${esc(r.file)}</div>` : ''}</td><td class="n" data-v="${r.val}">${r.val ? L.eur(r.val) : '—'}</td><td>${r.kind === 'cadru' ? '<span class="tag">cadru</span>' : pill(r.status)}${r.ist ? '<div class="sub">istoric</div>' : ''}</td></tr>`).join('')}
+  </tbody></table></div>` : '<div class="empty">Niciun contract pentru filtrul ales.</div>'}`;
+  $$('[data-ctf]').forEach((b) => (b.onclick = () => { f.firma = b.dataset.ctf; viewContracts(); }));
+  $('#ctAn').onchange = (e) => { f.an = e.target.value; viewContracts(); };
+  $$('tr[data-href]').forEach((r) => (r.onclick = () => { location.hash = r.dataset.href; }));
+}
 
 /* ---------------- CALITATEA DATELOR (clienți) ---------------- */
 const PROJ_RX = /\b(amenaj\w*|locuint\w*|casa|case|hala|hale|pensiune|statie|statii|bloc|apartament\w*|oferta|proiect\w*|birou\w*|vacanta|duplex|anexa|extinder\w*|reabilit\w*|magazin|restaurant|cladire|imobil|bransament|dezafectare|firma luminoasa|biserica|parc|piata|centru|laborator|sat)\b/i;
