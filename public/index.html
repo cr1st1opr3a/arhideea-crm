@@ -209,7 +209,7 @@ const S = {
 };
 const DEF_SETTINGS = {
   semnatura: 'Arh. Cristian Oprea', firmaImplicita: 'bia', tarifArh: 25, tarifRez: 7, tarifInst: 4, costMp: 1200, tarifOrar: 40,
-  nextContract: { arhideea: 237, bia: 17 },
+  nextContract: { arhideea: 237, bia: 18 },
   colaboratori: [
     { rol: 'rezistență', nume: 'ing. Adrian Cazacu', firma: 'ADRIAN CAZACU PFA' },
     { rol: 'rezistență', nume: 'ing. Lucian Rozorea', firma: 'SC ROZINI SRL' },
@@ -1440,17 +1440,16 @@ function viewContracts() {
   let list = all.filter((r) => (f.firma === 'toate' || r.firma === f.firma) && (f.an === 'toți' || r.an === f.an));
   list.sort((a, b) => (a.firma === b.firma ? 0 : a.firma === 'arhideea' ? -1 : 1) || (b.n ?? -1) - (a.n ?? -1) || (b.an || '').localeCompare(a.an || ''));
   // dubluri și goluri (pe firmă; BIA numerotează pe an, SRL continuu)
-  const key = (r) => r.firma + '|' + r.n + (r.firma === 'bia' ? '|' + r.an : '');
+  const key = (r) => r.firma + '|' + r.n; // ambele firme numerotează continuu (BIA: 01/2025 … 17/2026)
   const cnt = {}; all.forEach((r) => { if (r.n != null) cnt[key(r)] = (cnt[key(r)] || 0) + 1; });
   const gaps = [];
   ['arhideea', 'bia'].forEach((fi) => {
     if (f.firma !== 'toate' && f.firma !== fi) return;
-    const groups = {}; all.filter((r) => r.firma === fi && r.n != null).forEach((r) => { const g = fi === 'bia' ? r.an : 'toți'; (groups[g] = groups[g] || new Set()).add(r.n); });
+    const groups = {}; all.filter((r) => r.firma === fi && r.n != null).forEach((r) => { const g = 'toți'; (groups[g] = groups[g] || new Set()).add(r.n); });
     Object.entries(groups).forEach(([g, set]) => {
-      if (fi === 'bia' && f.an !== 'toți' && g !== f.an) return;
       const arr = [...set].sort((a, b) => a - b); const hi = arr[arr.length - 1]; const lo = Math.max(arr[0], hi - 40);
       const miss = []; for (let i = lo; i <= hi; i++) if (!set.has(i)) miss.push(i);
-      if (miss.length) gaps.push(`${fi === 'arhideea' ? 'SRL' : 'BIA ' + g}: ${miss.slice(0, 40).join(', ')}${miss.length > 40 ? '…' : ''}`);
+      if (miss.length) gaps.push(`${fi === 'arhideea' ? 'SRL' : 'BIA'}: ${miss.slice(0, 40).join(', ')}${miss.length > 40 ? '…' : ''}`);
     });
   });
   const dups = list.filter((r) => r.n != null && cnt[key(r)] > 1);
@@ -1466,7 +1465,7 @@ function viewContracts() {
     ${gaps.length ? `<div ${dups.length ? 'style="margin-top:6px"' : ''}><b>Numere lipsă din șir</b> <span class="sub">(ultimele 40 de numere; pot fi contracte neînregistrate aici sau numere sărite)</span>: ${gaps.map(esc).join(' · ')}</div>` : ''}
   </div></div>` : ''}
   ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Nr.</th><th>Data</th><th>Firmă</th><th>Client</th><th>Titlu / obiect</th><th class="n">Valoare arh.</th><th>Status</th></tr></thead><tbody>
-  ${list.map((r) => `<tr class="click" data-href="${r.href}" style="${r.n != null && cnt[key(r)] > 1 ? 'background:rgba(180,35,24,.08)' : ''}"><td class="num" data-v="${(r.n ?? 0) + (r.firma === 'bia' ? +r.an * 1000 : 0)}"><b>${esc(r.nr)}</b>${r.n != null && cnt[key(r)] > 1 ? ' <span class="pill" style="background:#f6d6d2;color:#8a1c12">dublură</span>' : ''}</td><td class="num">${esc(L.dataRo(r.data) || r.an || '—')}</td><td><span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(r.client)}</b></td><td>${esc(r.titlu)}${r.file ? `<div class="sub">${esc(r.file)}</div>` : ''}</td><td class="n" data-v="${r.val}">${r.val ? L.eur(r.val) : '—'}</td><td>${r.kind === 'cadru' ? '<span class="tag">cadru</span>' : pill(r.status)}${r.ist ? '<div class="sub">istoric</div>' : ''}</td></tr>`).join('')}
+  ${list.map((r) => `<tr class="click" data-href="${r.href}" style="${r.n != null && cnt[key(r)] > 1 ? 'background:rgba(180,35,24,.08)' : ''}"><td class="num" data-v="${r.n ?? 0}"><b>${esc(r.nr)}</b>${r.n != null && cnt[key(r)] > 1 ? ' <span class="pill" style="background:#f6d6d2;color:#8a1c12">dublură</span>' : ''}</td><td class="num">${esc(L.dataRo(r.data) || r.an || '—')}</td><td><span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(r.client)}</b></td><td>${esc(r.titlu)}${r.file ? `<div class="sub">${esc(r.file)}</div>` : ''}</td><td class="n" data-v="${r.val}">${r.val ? L.eur(r.val) : '—'}</td><td>${r.kind === 'cadru' ? '<span class="tag">cadru</span>' : pill(r.status)}${r.ist ? '<div class="sub">istoric</div>' : ''}</td></tr>`).join('')}
   </tbody></table></div>` : '<div class="empty">Niciun contract pentru filtrul ales.</div>'}`;
   $$('[data-ctf]').forEach((b) => (b.onclick = () => { f.firma = b.dataset.ctf; viewContracts(); }));
   $('#ctAn').onchange = (e) => { f.an = e.target.value; viewContracts(); };
