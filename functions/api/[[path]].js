@@ -102,6 +102,17 @@ export async function onRequest(ctx) {
       for (let i = 0; i < stmts.length; i += 80) await db.batch(stmts.slice(i, i + 80));
       return json({ ok: true, count: stmts.length });
     }
+    // înlocuiește complet registrul de proiecte (re-import din Excel)
+    if (seg[0] === 'replace' && seg[1] === 'registru' && method === 'POST') {
+      const list = await request.json();
+      if (!Array.isArray(list) || list.length > 5000) return err('Listă invalidă');
+      const now = Date.now();
+      const stmts = [db.prepare('DELETE FROM docs WHERE col = ?1').bind('registru')];
+      for (const d of list) { if (!d || !okId(d.id)) continue; const { id, ...rest } = d; stmts.push(db.prepare('INSERT INTO docs (col, id, data, updated) VALUES (?1, ?2, ?3, ?4)').bind('registru', id, JSON.stringify(rest), now)); }
+      await db.batch(stmts.slice(0, 1).concat(stmts.slice(1, 80)));
+      for (let i = 80; i < stmts.length; i += 80) await db.batch(stmts.slice(i, i + 80));
+      return json({ ok: true, count: stmts.length - 1 });
+    }
     if (seg[0] === 'export' && method === 'GET') {
       const { results } = await db.prepare('SELECT col, id, data FROM docs').all();
       const out = {};

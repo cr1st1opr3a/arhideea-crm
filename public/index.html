@@ -1434,6 +1434,7 @@ function contractRows() {
   return rows;
 }
 function viewContracts() {
+  if (S.sync) return viewSync();
   const f = S.ctF = S.ctF || { firma: 'arhideea', an: 'toți' };
   const all = contractRows();
   const ani = [...new Set(all.map((r) => r.an).filter(Boolean))].sort().reverse();
@@ -1445,7 +1446,7 @@ function viewContracts() {
   const gaps = [];
   ['arhideea', 'bia'].forEach((fi) => {
     if (f.firma !== 'toate' && f.firma !== fi) return;
-    const groups = {}; all.filter((r) => r.firma === fi && r.n != null).forEach((r) => { const g = 'toți'; (groups[g] = groups[g] || new Set()).add(r.n); });
+    const groups = {}; all.filter((r) => r.firma === fi && r.n != null && r.n < 1000).forEach((r) => { const g = 'toți'; (groups[g] = groups[g] || new Set()).add(r.n); });
     Object.entries(groups).forEach(([g, set]) => {
       const arr = [...set].sort((a, b) => a - b); const hi = arr[arr.length - 1]; const lo = Math.max(arr[0], hi - 40);
       const miss = []; for (let i = lo; i <= hi; i++) if (!set.has(i)) miss.push(i);
@@ -1458,6 +1459,7 @@ function viewContracts() {
   <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
     <div class="chips">${[['arhideea', 'SRL'], ['bia', 'BIA'], ['toate', 'Ambele']].map(([v, l]) => `<button class="chip" data-ctf="${v}" aria-pressed="${f.firma === v}">${l}</button>`).join('')}</div>
     <select id="ctAn" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font:inherit"><option value="toți">toți anii</option>${ani.map((a) => `<option ${f.an === a ? 'selected' : ''}>${a}</option>`).join('')}</select>
+    <label class="btn small" style="cursor:pointer">Sincronizează cu registrul (.xlsx)<input type="file" id="ctSync" accept=".xlsx,.xls" style="display:none"></label>
     <span class="sub">Următorul număr: SRL <b>${s.nextContract.arhideea}</b> · BIA <b>${s.nextContract.bia}</b> (se schimbă din Setări)</span>
   </div>
   ${dups.length || gaps.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="bd">
@@ -1469,7 +1471,126 @@ function viewContracts() {
   </tbody></table></div>` : '<div class="empty">Niciun contract pentru filtrul ales.</div>'}`;
   $$('[data-ctf]').forEach((b) => (b.onclick = () => { f.firma = b.dataset.ctf; viewContracts(); }));
   $('#ctAn').onchange = (e) => { f.an = e.target.value; viewContracts(); };
+  $('#ctSync').onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; try { S.sync = planSync(readRegistryXlsx(await fl.arrayBuffer())); viewSync(); } catch (er) { toast('Nu am putut citi fișierul: ' + er.message, 5000); } };
   $$('tr[data-href]').forEach((r) => (r.onclick = () => { location.hash = r.dataset.href; }));
+}
+
+/* ---------------- SINCRONIZARE CU „Clienti Arhideea.xlsx” ---------------- */
+function readRegistryXlsx(buf) {
+  const wb = XLSX.read(buf, { type: 'array' }); const out = [];
+  const sheets = wb.SheetNames.map((n) => ({ n, firma: /bia/i.test(n) ? 'bia' : /arhideea/i.test(n) ? 'arhideea' : null })).filter((x) => x.firma);
+  if (!sheets.length) throw new Error('nu găsesc foile ARHIDEEA / BIA OCD');
+  sheets.forEach(({ n, firma }) => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' });
+    rows.forEach((r, i) => {
+      if (i === 0) return; const t = (x) => String(x ?? '').trim();
+      const ben = t(r[0]), np = t(r[3]); if (!ben || !np) return;
+      const m = np.match(/^(\d+)/); const y = (np.match(/(\d{4})\s*$/) || [])[1] || '';
+      out.push({ firma, rand: i + 1, beneficiar: ben, obiect: t(r[1]), adresa: t(r[2]), nrProiect: np, dovadaOar: t(r[4]), contract: t(r[5]), ofertat: t(r[6]), incasat: t(r[7]), rez: t(r[8]), inst: t(r[9]), n: m ? +m[1] : null, an: y });
+    });
+  });
+  return out;
+}
+function planSync(reg) {
+  const offers = [...S.offers.values()];
+  const cname = (o) => o.clientNume || S.clients.get(o.clientId)?.nume || '';
+  const GENW = new Set('studio international cabinet notarial consulting engineering invest investment medical design group construct constructii service services trading holding company technologie technology tech properties ferma farm hotel casa locuinta birou apartament amenajare semnat familia dental elite furnizare electrica'.split(' '));
+  const strongTok = (w) => w.length >= 4 && !PRENUME.has(w) && !GENW.has(w);
+  const like = (a, b) => {
+    const ta = nameToks(a), tb = nameToks(b); const shared = [...new Set(ta.filter((w) => tb.includes(w)))];
+    if (shared.some((w) => strongTok(w) && w.length >= 5)) return true;               // nume de familie comun
+    if (shared.length >= 2 && shared.some((w) => !GENW.has(w))) return true;          // prenume + nume, în orice ordine
+    return false;
+  };
+  const plat = [];
+  offers.forEach((o) => { if (o.contract?.nr && !o.anexa) { const m = String(o.contract.nr).match(/(\d+)/); if (m) plat.push({ kind: 'o', f: o.firma, n: +m[1], name: cname(o), o }); } });
+  S.clients.forEach((c) => { if (c.cadru?.nr) { const m = String(c.cadru.nr).match(/(\d+)/); if (m) plat.push({ kind: 'cadru', f: 'arhideea', n: +m[1], name: c.nume, c }); } });
+  const regBy = {}; reg.forEach((r) => { if (r.n != null) regBy[r.firma + '|' + r.n] = r; });
+  const confirmed = new Set(plat.filter((p) => { const r = regBy[p.f + '|' + p.n]; return r && like(p.name, r.beneficiar); }).map((p) => p));
+  const used = new Set();
+  const items = [];
+  reg.forEach((r) => {
+    if (r.n == null) return;
+    const it = { r, sel: +r.an >= 2019 || !r.an };
+    const nrTxt = r.firma === 'bia' ? String(r.n).padStart(2, '0') + '/' + (r.an || '') : String(r.n);
+    it.nrTxt = nrTxt;
+    if (/mutat/i.test(r.contract + ' ' + r.dovadaOar)) { it.act = 'skip'; it.why = 'mutat'; it.sel = false; items.push(it); return; }
+    const same = plat.filter((p) => p.f === r.firma && p.n === r.n);
+    const ok = same.find((p) => confirmed.has(p));
+    if (ok) { it.act = 'ok'; it.why = 'în platformă: ' + ok.name; it.sel = false; used.add(ok); items.push(it); return; }
+    if (same.length) { it.act = 'conf'; it.why = `nr. folosit deja în platformă de „${same.map((p) => p.name).join(', ')}” – probabil același client sub alt nume; nu modific nimic. Dacă e altcineva, corectează manual.`; it.sel = false; same.forEach((p) => used.add(p)); items.push(it); return; }
+    // contract existent al aceluiași client, cu alt număr (neconfirmat de registru) → corectare număr
+    const wrong2 = plat.find((p) => !confirmed.has(p) && !used.has(p) && p.f === r.firma && like(p.name, r.beneficiar));
+    if (wrong2) { used.add(wrong2); it.act = 'renr'; it.p = wrong2; it.why = `${wrong2.name}: nr. ${wrong2.kind === 'cadru' ? wrong2.c.cadru.nr : wrong2.o.contract.nr} → ${nrTxt}${wrong2.kind === 'cadru' ? ' (contract-cadru)' : ''}`; items.push(it); return; }
+    // ofertă fără contract a aceluiași client, din anul contractului sau cel dinainte
+    const cands = offers.filter((o) => !o.contract?.nr && !o.anexa && like(cname(o), r.beneficiar) && (!r.an || !o.data || (+o.data.slice(0, 4) <= +r.an && +o.data.slice(0, 4) >= +r.an - 2)) && !items.some((x) => x.o === o))
+      .sort((a, b) => (b.firma === r.firma) - (a.firma === r.firma) || (b.data || '').localeCompare(a.data || ''));
+    if (cands.length) { it.act = 'set'; it.o = cands[0]; it.why = `ofertă existentă: ${cname(cands[0])} · ${cands[0].obiectiv || ''} · ${L.dataRo(cands[0].data) || ''}`; items.push(it); return; }
+    const cl = [...S.clients.values()].find((c) => like(c.nume || '', r.beneficiar));
+    it.act = 'new'; it.c = cl; it.why = cl ? `ofertă nouă la clientul existent ${cl.nume}` : 'client + ofertă noi'; items.push(it);
+  });
+  const conflicts = plat.filter((p) => !confirmed.has(p) && !used.has(p) && regBy[p.f + '|' + p.n] && !/mutat/i.test(regBy[p.f + '|' + p.n].contract + ' ' + regBy[p.f + '|' + p.n].dovadaOar) ).map((p) => ({ p, r: regBy[p.f + '|' + p.n] }));
+  const orphan = plat.filter((p) => !confirmed.has(p) && !used.has(p) && (!regBy[p.f + '|' + p.n] || /mutat/i.test(regBy[p.f + '|' + p.n].contract + ' ' + regBy[p.f + '|' + p.n].dovadaOar)));
+  return { reg, items, conflicts, orphan };
+}
+function viewSync() {
+  const sy = S.sync; const ACT = { set: 'pune nr. pe oferta existentă', renr: 'corectează numărul', new: 'creează', ok: 'deja corect', skip: 'ignorat', conf: 'de verificat' };
+  const show = sy.items.filter((x) => x.act !== 'ok' && x.act !== 'skip');
+  const nOk = sy.items.filter((x) => x.act === 'ok').length;
+  $('#main').innerHTML = `<div class="ehead"><button class="back" id="bk">← Contracte</button><h2>Sincronizare cu registrul</h2><span class="sub">${sy.reg.length} rânduri în Excel · ${nOk} contracte deja corecte</span></div>
+  <div class="sub" style="margin-bottom:10px">Bifează ce vrei aplicat. Contractele până în 2024 intră ca „istoric” (fără sold, status finalizată); cele din 2025–2026 ca active (contractată) – verifici apoi valoarea și % realizat. Rândurile mai vechi de 2019 sunt nebifate implicit. Registrul de proiecte din platformă se înlocuiește cu cel din fișier.</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><button class="btn small" id="syAll">Bifează tot</button><button class="btn small" id="syNone">Debifează tot</button><button class="btn small" id="sy19">Doar 2019+</button></div>
+ ${sy.msg ? `<div class="card" style="margin-bottom:12px"><div class="bd"><b>${esc(sy.msg)}</b> <a href="#contracte" id="syDone">Înapoi la contracte</a></div></div>` : ''}
+  ${sy.orphan.length ? `<div class="card" style="margin-bottom:12px"><div class="bd"><b>Contracte din platformă care nu apar în registru</b> (adaugă-le în Excel): ${sy.orphan.map((p) => `${p.f === 'arhideea' ? 'SRL' : 'BIA'} ${p.n} – ${esc(p.name)}`).join(' · ')}</div></div>` : ''}
+  ${sy.conflicts.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="bd"><b>Numere din platformă care în registru aparțin altui client</b> (nu se modifică automat):<br>${sy.conflicts.map(({ p, r }) => `${p.f === 'arhideea' ? 'SRL' : 'BIA'} ${p.n}: platforma „${esc(p.name)}” · registrul „${esc(r.beneficiar)}”${r.contract ? ' (' + esc(r.contract) + ')' : ''}`).join('<br>')}</div></div>` : ''}
+  <div class="tablebox"><table class="list"><thead><tr><th></th><th>Nr.</th><th>Firmă</th><th>Beneficiar (registru)</th><th>Obiect</th><th>Acțiune</th></tr></thead><tbody>
+  ${show.map((x) => `<tr><td>${x.act === 'conf' ? '⚠︎' : `<input type="checkbox" data-sy="${sy.items.indexOf(x)}" ${x.sel ? 'checked' : ''}>`}</td><td class="num" data-v="${x.r.n}"><b>${esc(x.nrTxt)}</b><div class="sub">${esc(x.r.nrProiect)}</div></td><td><span class="tag">${x.r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(x.r.beneficiar)}</b>${x.r.contract ? `<div class="sub">${esc(x.r.contract)}</div>` : ''}</td><td class="sub">${esc([x.r.obiect, x.r.adresa].filter(Boolean).join(' · '))}</td><td><span class="pill">${ACT[x.act]}</span><div class="sub">${esc(x.why)}</div></td></tr>`).join('')}
+  </tbody></table></div>
+  <div style="margin-top:12px;display:flex;gap:10px;align-items:center"><button class="btn primary" id="syGo">Aplică selecția</button><span class="sub" id="syMsg"></span></div>`;
+  $('#bk').onclick = () => { S.sync = null; go('contracte'); }; const dn = $('#syDone'); if (dn) dn.onclick = () => { S.sync = null; };
+  $$('[data-sy]').forEach((c) => (c.onchange = () => { sy.items[+c.dataset.sy].sel = c.checked; }));
+  const setAll = (fn) => { show.forEach((x) => (x.sel = x.act !== 'conf' && fn(x))); viewSync(); };
+  $('#syAll').onclick = () => setAll(() => true); $('#syNone').onclick = () => setAll(() => false); $('#sy19').onclick = () => setAll((x) => !x.r.an || +x.r.an >= 2019);
+  $('#syGo').onclick = async () => {
+    const b = $('#syGo'); b.disabled = true; const msg = $('#syMsg'); msg.textContent = 'Aplic…';
+    const docs = { offers: [], clients: [] }; let n = { set: 0, renr: 0, new: 0 };
+    const today = L.ofertaNoua(sett()).data;
+    for (const x of sy.items.filter((y) => y.sel && ['set', 'renr', 'new'].includes(y.act))) {
+      const r = x.r; const ist = r.an && +r.an <= 2024;
+      if (x.act === 'renr') {
+        if (x.p.kind === 'cadru') { const c = S.clients.get(x.p.c.id); c.cadru = { ...c.cadru, nr: x.nrTxt }; docs.clients.push(c); }
+        else { const o = S.offers.get(x.p.o.id); o.contract = { ...o.contract, nr: x.nrTxt }; docs.offers.push(o); }
+        n.renr++; continue;
+      }
+      let o;
+      if (x.act === 'set') { o = S.offers.get(x.o.id); }
+      else {
+        let c = x.c && S.clients.get(x.c.id);
+        if (!c) { c = { id: L.uid('c_'), nume: r.beneficiar, tip: /\b(srl|sa|s\.r\.l)\b/i.test(r.beneficiar) ? 'PJ' : 'PF', localitate: r.adresa || '', adresa: '', tel: '', email: '', note: '', sursa: 'registru' }; S.clients.set(c.id, c); docs.clients.push(c); }
+        o = { ...L.ofertaNoua(sett()), id: L.uid('o_'), clientId: c.id, clientNume: c.nume, obiectiv: r.obiect || 'Proiect', localitate: r.adresa || '', firma: r.firma, data: r.an ? r.an + '-01-01' : today, tip: 'forfetar', forfetar: [], sursa: 'registru', noteInterne: 'Creată la sincronizarea cu registrul (nr. proiect ' + r.nrProiect + '). Valoarea nu e cunoscută – de completat.' };
+        o.tva = { ...(o.tva || {}), arh: r.firma === 'arhideea' };
+        S.offers.set(o.id, o);
+      }
+      if (o.firma !== r.firma) { o.firma = r.firma; o.tva = { ...(o.tva || {}), arh: r.firma === 'arhideea' }; }
+      o.contract = { ...(o.contract || {}), nr: x.nrTxt, data: o.contract?.data || '', ben: o.contract?.ben || { tip: 'PF' }, investitie: o.contract?.investitie || r.obiect || o.obiectiv || '', istoric: ist ? true : !!o.contract?.istoric };
+      if (ist) { if (!['finalizată'].includes(o.status)) o.status = 'finalizată'; }
+      else if (['ciornă', 'trimisă', 'arhivă', 'respinsă', ''].includes(o.status || '')) o.status = 'contractată';
+      docs.offers.push(o); n[x.act]++;
+    }
+    try {
+      if (docs.offers.length || docs.clients.length) await api('POST', 'import', { offers: docs.offers.map(clean), clients: docs.clients.map(clean) });
+      // registrul din platformă = cel din fișier
+      const regDocs = sy.reg.map((r) => { const { n: _n, an: _a, ...rest } = r; return { ...rest, id: 'r_' + r.firma.slice(0, 1) + r.rand }; });
+      await api('POST', 'replace/registru', regDocs); S.registru = regDocs;
+      // contoarele de numere
+      const st = sett(); const ns = clean(S.settings); ns.nextContract = { ...st.nextContract };
+      ['arhideea', 'bia'].forEach((fi) => { const mx = Math.max(0, ...sy.reg.filter((r) => r.firma === fi && r.n != null && r.n < 1000).map((r) => r.n), ...[...S.offers.values()].filter((o) => o.firma === fi && o.contract?.nr).map((o) => parseInt(String(o.contract.nr), 10) || 0).filter((v) => v < 1000)); if (mx + 1 > ns.nextContract[fi]) ns.nextContract[fi] = mx + 1; });
+      S.settings = ns; await write('settings', 'main', ns);
+      toast('Sincronizare făcută');
+      const msgTxt = `Gata: ${n.set} numere puse pe oferte, ${n.renr} corectate, ${n.new} oferte create; registrul actualizat (${regDocs.length} rânduri).`;
+      S.sync = planSync(S.sync.reg); S.sync.msg = msgTxt; viewSync(); S.db.refreshAll();
+    } catch (er) { msg.textContent = 'Eroare: ' + er.message; b.disabled = false; }
+  };
 }
 
 /* ---------------- CALITATEA DATELOR (clienți) ---------------- */
@@ -1520,7 +1641,7 @@ function viewCheck() {
 const DSTOP = new Set(['srl', 'sa', 'sc', 'pfa', 'ii', 'if', 'fam', 'familia', 'dl', 'dna', 'arh', 'ing', 'si', 'de', 'la', 'com', 'impex', 'prod', 'cons', 'trans', 'grup', 'group', 'company', 'construct', 'invest', 'service', 'srl.']);
 const nameToks = (n) => norm(n).replace(/s\.?\s?r\.?\s?l\.?/g, ' ').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !DSTOP.has(w));
 function lev(a, b) { if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
-const PRENUME = new Set('adi adrian alex alexandra alexandru alin alina ana andra andreea andrei anca andrea bogdan catalin catalina claudia claudiu cosmin costin cristi cristian cristina dan dana daniel daniela diana dorin dragos elena emil eugen florin gabi gabriel gabriela george georgiana gheorghe horia ioan ioana ion ionel ionut iulia iulian laura lucian madalina marian maria marius mihaela mihai mircea monica nicolae nicu oana octavian ovidiu paul petru radu raluca razvan roxana sebi sebastian sergiu silviu simona sorin stefan teodor tudor valentin vasile victor vlad'.split(' '));
+const PRENUME = new Set('adi adrian alex alexandra alexandru alin alina ana andra andreea andrei anca andrea bogdan catalin catalina claudia claudiu cosmin costin cristi cristian cristina dan dana daniel daniela diana dorin dragos elena emil eugen florin gabi gabriel gabriela george georgiana gheorghe horia ioan ioana ion ionel ionut iulia iulian laura lucian madalina marian maria marius mihaela mihai mircea monica nicolae nicu oana octavian ovidiu paul petru radu raluca razvan roxana sebi sebastian sergiu silviu simona sorin stefan teodor tudor valentin vasile victor vlad robert raul sandor liviu lorin laurentiu eusebiu virgil alpar zoltan zoli costel constantin dumitru biborka livia agneta romulus ana nicoleta adina corina irina alexandra alexandru marin marcel valeriu emanuel cornel corneliu aurel aurelian dorel petre sergiu iuliana oana'.split(' '));
 const tokEq = (x, y) => x === y || (x.length >= 6 && y.length >= 6 && lev(x, y) <= 1);
 function sameClient(a, b) {
   const digits = (x) => String(x || '').replace(/\D/g, '');
@@ -1529,7 +1650,7 @@ function sameClient(a, b) {
   if (a.email && b.email && norm(a.email).trim() === norm(b.email).trim()) return 'același e-mail';
   const ta = nameToks(a.nume || ''), tb = nameToks(b.nume || ''); if (!ta.length || !tb.length) return '';
   const [sm, lg] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
-  if (sm.length >= 2 && sm.length === lg.length && sm.every((w) => lg.some((v) => tokEq(w, v)))) return 'nume aproape identic';
+  if (sm.length >= 2 && sm.every((w) => lg.some((v) => tokEq(w, v)))) return 'nume aproape identic';
   if (sm.every((w) => lg.some((v) => tokEq(w, v))) && sm.some((w) => w.length >= 5 && !PRENUME.has(w))) return sm.length === lg.length ? 'nume aproape identic' : 'nume conținut în celălalt';
   return '';
 }
