@@ -723,6 +723,7 @@ function liveCalc() {
 
 function renderSummary() {
   const d = S.draft; if (!d) return; const t = L.totals(d);
+  renderTabs();
   const di = $('#discInfo'); if (di) di.textContent = t.disc ? '−' + L.eur(t.disc) + ' din ' + L.eur(t.arhBrut) : 'se aplică doar la arhitectură; rezistența și instalațiile rămân la fel';
   const fz = d.tip === 'mp' && d.final ? L.calcZone(d.final.zone, d.tva, d.cotaTva) : null;
   const paid = paidFor((p) => p.offerId === d.id);
