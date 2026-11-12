@@ -452,7 +452,7 @@ const ETAB_OF = { anx: 'oferta', gen: 'oferta', calc: 'oferta', et: 'oferta', tx
 function renderTabs() {
   const d = S.draft; const nav = $('#etabs'); if (!nav || !d) return;
   const cus = cuFor(d.id); const f = fin(d); const nch = [...S.ch.values()].filter((x) => x.offerId === d.id && !x.recuperat).length;
-  const tabs = [['oferta', 'Ofertă', L.eur(L.totals(d).prestator)], d.anexa ? null : ['contract', 'Contract', d.contract?.nr ? 'nr. ' + d.contract.nr : ''], ['proiect', 'Proiect', cus.length ? 'CU ' + (cus[0].nr || '') : ''],
+  const tabs = [['oferta', 'Ofertă', L.eur(L.totals(d).prestator)], d.anexa ? null : ['contract', 'Contract', d.contract?.nr ? 'nr. ' + d.contract.nr : ''], L.esteServicii(d) ? null : ['proiect', 'Proiect', cus.length ? 'CU ' + (cus[0].nr || '') : ''],
     ['bani', 'Bani', f.contr ? (f.now > 0.5 ? 'de încasat ' + L.eur(f.now) : L.eur(f.paid) + ' încasat') + (nch ? ' · ' + nch + ' chelt.' : '') : ''], ['note', 'Note', '']].filter(Boolean);
   if (!tabs.some((t) => t[0] === S.etab)) S.etab = 'oferta';
   nav.innerHTML = tabs.map(([k, l, x]) => `<button data-et="${k}" aria-current="${S.etab === k}">${l}${x ? `<span class="sub">${esc(x)}</span>` : ''}</button>`).join('');
@@ -487,6 +487,8 @@ function renderForm() {
       ${field('Dată ofertă', inp('data', { type: 'date' }))}
       ${field('Nr. înregistrare', `<div style="display:flex;gap:6px">${inp('nr')}<button class="btn small" id="reNr" title="Recalculează din dată">↻</button></div>`)}
       ${field('Status', `<select data-p="status" id="i-status">${STATUSES.map((s) => `<option ${d.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
+      ${field('Tip lucrare', `<select data-p="domeniu" id="i-dom"><option value="constructii" ${d.domeniu !== 'servicii' ? 'selected' : ''}>Proiect de construcție</option><option value="servicii" ${d.domeniu === 'servicii' ? 'selected' : ''}>Servicii (IT, consultanță, randări…)</option></select>`)}
+      ${d.domeniu === 'servicii' ? field('Tip servicii', `<input data-p="serviciiTip" list="dlServ" placeholder="ex. Servicii IT" value="${esc(d.serviciiTip || '')}">` + `<datalist id="dlServ">${L.SERV_TIPURI.map((x) => `<option value="${x}">`).join('')}</datalist>`) : ''}
       ${field('Firmă', `<select data-p="firma" id="i-firma"><option value="bia" ${d.firma !== 'arhideea' ? 'selected' : ''}>BIA Oprea Cristian Daniel (fără TVA arh.)</option><option value="arhideea" ${d.firma === 'arhideea' ? 'selected' : ''}>SC Atelier Arhideea SRL (TVA 21%)</option></select>`)}
     </div>
   </div></details>
@@ -637,17 +639,18 @@ function contractEditor() {
   : `<div class="grid">
     ${field('Nume beneficiar', inp('contract.ben.nume', { ph: d.clientNume }))}${field('Domiciliu', inp('contract.ben.domiciliu'))}${field('CNP', inp('contract.ben.cnp'))}
     ${field('CI seria', inp('contract.ben.ciSerie'))}${field('CI nr.', inp('contract.ben.ciNr'))}${field('Telefon', inp('contract.ben.tel'))}${field('E-mail', inp('contract.ben.email'))}</div>`}
-  <div class="grid">
+  ${L.esteServicii(d) ? `<div class="grid">${field('Obiectul serviciilor (apare în contract)', inp('contract.investitie', { ph: d.obiectiv || 'ex. dezvoltarea și mentenanța aplicației …' }))}</div>
+  <div class="sub">Contract de prestări ${esc(L.servDen(d.serviciiTip))} – fără CU, amplasament sau trimiteri la legislația construcțiilor. Serviciile și prețul se iau din calculul ofertei (pe ore sau forfetar).</div>` : `<div class="grid">
     ${field('Denumire investiție (din CU)', inp('contract.investitie', { ph: d.obiectiv }))}
     ${field('Amplasament', inp('contract.amplasament', { ph: [d.localitate, d.adresa].filter(Boolean).join(', ') }))}
     ${field('Nr. CF', inp('contract.cf'))}${field('Nr. cadastral', inp('contract.nrCad'))}
     ${field('Certificat de urbanism (nr./dată)', inp('contract.cu'))}
-  </div>
-  ${d.tip === 'mp' ? `<div class="grid">${zs.map((z) => field('Regim înălțime – ' + esc(z.den), `<input data-p="contract.regim.${esc(z.den).replace(/\./g, '·')}" value="${esc((c.regim || {})[z.den] ?? '')}" placeholder="ex. P+1E">`)).join('')}</div>
+  </div>`}
+  ${d.tip === 'mp' && !L.esteServicii(d) ? `<div class="grid">${zs.map((z) => field('Regim înălțime – ' + esc(z.den), `<input data-p="contract.regim.${esc(z.den).replace(/\./g, '·')}" value="${esc((c.regim || {})[z.den] ?? '')}" placeholder="ex. P+1E">`)).join('')}</div>
     ${d.final ? `<label class="check"><input type="checkbox" data-c="contract.dinFinal" ${c.dinFinal ? 'checked' : ''}> Folosește suprafețele din calculul final</label>` : ''}` : ''}
   <label class="check"><input type="checkbox" data-c="contract.istoric" ${c.istoric ? 'checked' : ''}> Contract vechi, încheiat – nu urmări soldul (plățile nu sunt înregistrate aici)</label>
   ${c.fisier ? `<div class="sub">Preluat din fișierul: <span class="num">${esc(c.fisier)}</span></div>` : ''}
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small" id="toCadru" title="Contractul devine contract-cadru pe client, iar oferta aceasta devine Anexa 01">E contract-cadru (cu anexe)…</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
 }
 
 function clientHint() {
@@ -687,6 +690,7 @@ function bindForm() {
     const el = e.target;
     if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
     if (el.dataset.p === 'firma') { S.draft.tva.arh = el.value === 'arhideea'; renderForm(); renderSummary(); scheduleSave(); }
+    if (el.dataset.p === 'domeniu') { if (S.draft.domeniu === 'servicii' && S.etab === 'proiect') S.etab = 'oferta'; renderForm(); renderSummary(); scheduleSave(); return; }
     if (el.dataset.p === 'contract.nr') { reserveContractNr(S.draft); if (['ciornă', 'trimisă'].includes(S.draft.status) && S.draft.contract.nr) { S.draft.status = 'contractată'; renderForm(); renderSummary(); } scheduleSave(); }
     if (el.dataset.p === 'contract.ben.tip' || el.dataset.p === 'moneda') { renderForm(); renderSummary(); scheduleSave(); }
     if (el.dataset.p === 'status') renderSummary();
@@ -706,6 +710,7 @@ function bindForm() {
     if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); reserveContractNr(d); if (d.status === 'ciornă' || d.status === 'trimisă') d.status = 'contractată'; renderForm(); renderSummary(); scheduleSave(); toast('Contract nr. ' + d.contract.nr + ' înregistrat'); return; }
     if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
     if (b.id === 'dlCtr') { await downloadContract(); return; }
+    if (b.id === 'toCadru') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmă: devine contract-cadru, oferta = Anexa 01'; return; } await toCadru(); return; }
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
     if (b.id === 'scanGo') { await scanDocs(); return; }
     if (b.id === 'dlPI') { await downloadProjectInfo(); return; }
@@ -907,6 +912,31 @@ function reserveContractNr(d) {
   if (!d?.contract?.nr) return; const s = sett(); const nrv = parseInt(String(d.contract.nr).replace(/^\D+/, ''), 10);
   if (nrv && nrv >= s.nextContract[d.firma]) { const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, [d.firma]: nrv + 1 }; S.settings = ns; write('settings', 'main', ns); }
 }
+async function toCadru() {
+  const d = S.draft; const c = S.clients.get(d.clientId);
+  if (!c) { toast('Leagă întâi oferta de un client (câmpul Client).', 4000); return; }
+  if (d.firma !== 'arhideea') { toast('Contractul-cadru se generează pe SC Atelier Arhideea SRL – schimbă firma ofertei pe SRL.', 5000); return; }
+  const ct = d.contract || {}; const b = ct.ben || {};
+  const others = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa && o.id !== d.id);
+  let nr;
+  if (c.cadru?.nr) { nr = String(others.reduce((m, o) => Math.max(m, parseInt(o.anexa.nr, 10) || 0), 0) + 1).padStart(2, '0'); toast('Clientul are deja contractul-cadru nr. ' + c.cadru.nr + ' – oferta devine Anexa ' + nr, 5000); }
+  else {
+    if (!ct.nr) { ct.nr = String(sett().nextContract.arhideea); }
+    reserveContractNr(d);
+    c.cadru = { nr: String(ct.nr), data: ct.data || d.data || '', domeniu: d.domeniu === 'servicii' ? 'servicii' : 'constructii', serviciiTip: d.serviciiTip || '', obiect: ct.investitie || d.obiectiv || '' };
+    nr = '01';
+  }
+  // datele beneficiarului din contract trec pe fișa clientului, dacă lipsesc acolo
+  const map = { tel: 'tel', email: 'email', regCom: 'regCom', iban: 'iban' };
+  Object.entries(map).forEach(([k, ck]) => { if (b[k] && !c[ck]) c[ck] = b[k]; });
+  if (b.cui && !c.cnp) c.cnp = b.cui; if (b.cnp && !c.cnp) c.cnp = b.cnp;
+  if ((b.sediu || b.domiciliu) && !c.adresa) c.adresa = b.sediu || b.domiciliu; if (b.tip) c.tip = b.tip;
+  write('clients', c.id, c);
+  d.anexa = { nr, data: ct.data || d.data || '', obiect: ct.investitie || d.obiectiv || '' };
+  if (!['în lucru', 'finalizată'].includes(d.status)) d.status = 'contractată';
+  flushSave(); toast('Contract-cadru nr. ' + c.cadru.nr + ' · oferta este acum Anexa ' + nr);
+  S.ctab = 'proiecte'; S.ctabFor = c.id; go('client', c.id);
+}
 async function downloadContract() {
   const d = S.draft;
   if (!d.contract.nr) { const s = sett(); d.contract.nr = String(s.nextContract[d.firma]); }
@@ -918,8 +948,9 @@ async function downloadContract() {
   if (c) { const nc = { ...c }; ['tel', 'email', 'cnp', 'ciSerie', 'ciNr'].forEach((k) => { if (b[k] && !nc[k]) nc[k] = b[k]; }); if (b.domiciliu && !nc.adresa) nc.adresa = b.domiciliu; if (b.tip) nc.tip = b.tip; if (JSON.stringify(nc) !== JSON.stringify(c)) { S.clients.set(c.id, nc); write('clients', c.id, nc); } }
   flushSave(); renderForm(); renderSummary();
   try {
-    const blob = await renderDocx('contract', L.dataContract(d, sett()));
-    await save(fileSafe(`Contract proiectare ${d.clientNume} ${d.localitate}`) + '.docx', blob);
+    const sv = L.esteServicii(d);
+    const blob = await renderDocx(sv ? 'servicii' : 'contract', L.dataContract(d, sett()));
+    await save(fileSafe(`${sv ? 'Contract servicii' : 'Contract proiectare'} ${d.clientNume} ${sv ? '' : d.localitate}`) + '.docx', blob);
   } catch (e) { toast('Eroare la generarea contractului: ' + e.message, 5000); console.error(e); }
 }
 
@@ -1455,7 +1486,9 @@ function cadruCard(c) {
   const tot = anexe.reduce((s, o) => s + L.totals(o).prestator, 0);
   const paid = paidFor((p) => anexe.some((o) => o.id === p.offerId));
   return `<div class="card"><div class="hd">Contract-cadru nr. ${esc(c.cadru.nr || '—')}${c.cadru.data ? ' / ' + esc(L.dataRo(c.cadru.data)) : ''}</div><div class="bd">
-    <div class="grid">${field('Nr. contract-cadru', `<input data-cd="nr" value="${esc(c.cadru.nr || '')}">`)}${field('Data', `<input type="date" data-cd="data" value="${esc(c.cadru.data || '')}">`)}</div>
+    <div class="grid">${field('Nr. contract-cadru', `<input data-cd="nr" value="${esc(c.cadru.nr || '')}">`)}${field('Data', `<input type="date" data-cd="data" value="${esc(c.cadru.data || '')}">`)}
+      ${field('Tip lucrare', `<select data-cd="domeniu"><option value="constructii" ${c.cadru.domeniu !== 'servicii' ? 'selected' : ''}>Proiectare construcții</option><option value="servicii" ${c.cadru.domeniu === 'servicii' ? 'selected' : ''}>Servicii (IT, consultanță, randări…)</option></select>`)}
+      ${c.cadru.domeniu === 'servicii' ? field('Tip servicii', `<input data-cd="serviciiTip" list="dlServ" placeholder="ex. Servicii IT" value="${esc(c.cadru.serviciiTip || '')}"><datalist id="dlServ">${L.SERV_TIPURI.map((x) => `<option value="${x}">`).join('')}</datalist>`) + field('Obiect (apare în contract)', `<input data-cd="obiect" placeholder="ex. dezvoltare și mentenanță aplicații" value="${esc(c.cadru.obiect || '')}">`) : ''}</div>
     ${anexe.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Anexa</th><th>Obiect</th><th class="n">Valoare</th><th class="n">Încasat</th><th></th></tr></thead><tbody>
       ${anexe.map((o) => { const v = L.totals(o).prestator; const pd = paidFor((p) => p.offerId === o.id); return `<tr class="click" data-o="${o.id}"><td class="num">${esc(String(o.anexa.nr).padStart(2, '0'))}<div class="sub">${esc(L.dataRo(o.anexa.data))}</div></td><td>${esc(o.anexa.obiect || o.obiectiv)}</td><td class="n">${L.eur(v)}${o.moneda === 'RON' ? '<div class="sub">în lei</div>' : ''}</td><td class="n">${pd ? L.eur(pd) : '—'}</td><td>${pill(o.status)}</td></tr>`; }).join('')}
       </tbody><tfoot><tr><td colspan="2" class="sub">Total anexe</td><td class="n"><b>${L.eur(tot)}</b></td><td class="n">${L.eur(paid)}</td><td></td></tr></tfoot></table></div>` : '<div class="sub">Nicio anexă încă.</div>'}
@@ -1469,13 +1502,14 @@ function bindCadru(c) {
     const prev = [...S.offers.values()].filter((o) => o.clientId === c.id && o.contract?.nr).sort((a, b) => (b.contract.data || '').localeCompare(a.contract.data || ''))[0];
     if (prev) { c.cadru = { nr: String(prev.contract.nr), data: prev.contract.data || '' }; write('clients', c.id, c); viewClient(); toast('Am folosit contractul existent nr. ' + prev.contract.nr); return; }
     c.cadru = { nr: String(s.nextContract.arhideea), data: L.ofertaNoua(s).data }; const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, arhideea: s.nextContract.arhideea + 1 }; S.settings = ns; write('settings', 'main', ns); write('clients', c.id, c); viewClient(); };
-  $$('[data-cd]').forEach((el) => (el.onchange = () => { c.cadru[el.dataset.cd] = el.value; write('clients', c.id, c); }));
+  $$('[data-cd]').forEach((el) => (el.onchange = () => { c.cadru[el.dataset.cd] = el.value; write('clients', c.id, c); if (el.dataset.cd === 'domeniu') viewClient(); }));
   const an = $('#anxNew'); if (an) an.onclick = () => {
     const ex = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa);
     const nr = String(ex.reduce((m, o) => Math.max(m, parseInt(o.anexa.nr, 10) || 0), 0) + 1).padStart(2, '0');
     const o = L.ofertaNoua(sett(), 'ore');
     Object.assign(o, { clientId: c.id, clientNume: c.nume, localitate: c.localitate || '', firma: 'arhideea', status: 'contractată', obiectiv: 'Anexa ' + nr + ' la contractul-cadru ' + (c.cadru.nr || ''), moneda: 'EUR', curs: 0,
-      anexa: { nr, data: o.data, obiect: 'Proiectare de arhitectură, consultanță și servicii conexe pentru ' }, ore: [{ den: '', ore: 0, tarif: 45 }], etape: [], note: '', excluse: '', estimari: '' });
+      domeniu: c.cadru.domeniu === 'servicii' ? 'servicii' : 'constructii', serviciiTip: c.cadru.serviciiTip || '',
+      anexa: { nr, data: o.data, obiect: c.cadru.domeniu === 'servicii' ? (c.cadru.obiect || L.servDen(c.cadru.serviciiTip)) + ' – ' : 'Proiectare de arhitectură, consultanță și servicii conexe pentru ' }, ore: [{ den: '', ore: 0, tarif: 45 }], etape: [], note: '', excluse: '', estimari: '' });
     o.tva = { arh: false, rez: false, inst: false };
     S.offers.set(o.id, o); write('offers', o.id, o); go('oferta', o.id);
   };
@@ -1494,7 +1528,7 @@ function contractRows() {
   S.clients.forEach((c) => {
     if (!c.cadru?.nr) return; const anx = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa);
     const m = String(c.cadru.nr).match(/(\d+)/);
-    rows.push({ kind: 'cadru', firma: 'arhideea', nr: String(c.cadru.nr), n: m ? +m[1] : null, an: (c.cadru.data || '').slice(0, 4), data: c.cadru.data || '', client: c.nume, titlu: 'Contract-cadru · ' + anx.length + ' anex' + (anx.length === 1 ? 'ă' : 'e'), val: anx.reduce((a, o) => a + (['respinsă', 'ciornă'].includes(o.status) ? 0 : L.arhFinal(o)), 0), ist: false, status: '', href: 'c-' + c.id });
+    rows.push({ kind: 'cadru', firma: 'arhideea', nr: String(c.cadru.nr), n: m ? +m[1] : null, an: (c.cadru.data || '').slice(0, 4), data: c.cadru.data || '', client: c.nume, titlu: 'Contract-cadru' + (c.cadru.domeniu === 'servicii' ? ' ' + L.servDen(c.cadru.serviciiTip) + (c.cadru.obiect ? ' (' + c.cadru.obiect + ')' : '') : '') + ' · ' + anx.length + ' anex' + (anx.length === 1 ? 'ă' : 'e'), val: anx.reduce((a, o) => a + (['respinsă', 'ciornă'].includes(o.status) ? 0 : L.arhFinal(o)), 0), ist: false, status: '', href: 'c-' + c.id });
   });
   return rows;
 }

@@ -230,6 +230,18 @@
     const f = ((settings || {}).firme || {})[firma] || {};
     return f;
   };
+  /* Lucrări de tip „servicii” (IT, consultanță, randări…) – denumiri pentru contracte */
+  L.SERV_TIPURI = ['Servicii IT', 'Consultanță', 'Randări / vizualizări 3D', 'Design / grafică', 'Altele'];
+  L.servDen = (tip) => {
+    const t = String(tip || '').trim(); const k = t.toLowerCase();
+    if (!t || k === 'altele') return 'servicii';
+    if (/^servicii it$|^it\b/.test(k)) return 'servicii IT';
+    if (k.startsWith('consultan')) return 'servicii de consultanță';
+    if (k.startsWith('rand') || k.includes('vizualiz')) return 'servicii de realizare a randărilor și vizualizărilor 3D';
+    if (k.startsWith('design') || k.includes('grafic')) return 'servicii de design și grafică';
+    return k.startsWith('servicii') ? k : 'servicii de ' + k;
+  };
+  L.esteServicii = (o) => o && o.domeniu === 'servicii';
   L.dataContract = (o, settings) => {
     const c = o.contract || {};
     const b = c.ben || {};
@@ -297,6 +309,7 @@
       esal, excluseC: excl,
       benSig: String(benNume).toUpperCase(), firmaSig: firmaNume, benScurt: benNume, firmaScurt: o.firma === 'arhideea' ? 'Atelier Arhideea' : 'BIA Oprea Cristian Daniel',
       firmaSigReprez: o.firma === 'arhideea' ? 'prin arh. Cristian Oprea, administrator' : 'arh. Cristian Oprea, titular',
+      servDen: L.servDen(o.serviciiTip), servTitlu: L.servDen(o.serviciiTip), obiectServ: c.investitie || o.obiectiv || '', areEsal: esal.length > 0,
     };
   };
 
@@ -306,7 +319,10 @@
     const cd = c.cadru || {};
     const lines = [c.cnp ? (c.tip === 'PJ' ? 'CUI ' : 'CNP ') + c.cnp + (c.regCom ? '; ' + c.regCom : '') : (c.regCom || ''), c.iban || '', c.adresa || '', c.email || '', c.tel || ''].filter(Boolean);
     while (lines.length < 5) lines.push('');
-    return { cadruNr: cd.nr || '____', cadruData: cd.data ? L.dataRo(cd.data) : '____', benDen: String(c.nume || '').toUpperCase(), benL1: lines[0], benL2: lines[1], benL3: lines[2], benL4: lines[3], benL5: lines[4], benSig: c.nume || '' };
+    const constr = cd.domeniu !== 'servicii'; const sd = L.servDen(cd.serviciiTip);
+    const T = constr ? { cadruTitlu: 'CONTRACT CADRU PRESTARE SERVICII DE PROIECTARE', cadruObiect: 'Obiectul contractului este realizarea de catre prestator de servicii de proiectare si consultanta la specialitatea arhitectură pentru obiectivele menționate in anexele la contract, conform Legii nr. 169/2026 privind Codul amenajării teritoriului, urbanismului și construcțiilor și legislației în vigoare.', cadruA: 'să presteze servicii de proiectare şi consultanţã pentru specialitatea arhitecturã cu privire la obiectivele menționate in anexele la contract' }
+      : { cadruTitlu: 'CONTRACT CADRU DE PRESTĂRI SERVICII', cadruObiect: 'Obiectul contractului îl constituie prestarea de către prestator de ' + sd + ' (' + (cd.obiect || 'conform anexelor') + '), în condițiile, cu livrabilele, termenele și valorile stabilite prin anexele la contract.', cadruA: 'să presteze ' + sd + ' conform anexelor la contract' };
+    return { constr, ...T, cadruNr: cd.nr || '____', cadruData: cd.data ? L.dataRo(cd.data) : '____', benDen: String(c.nume || '').toUpperCase(), benL1: lines[0], benL2: lines[1], benL3: lines[2], benL4: lines[3], benL5: lines[4], benSig: c.nume || '' };
   };
   L.dataAnexa = (o, c) => {
     const a = o.anexa || {}; const cd = (c && c.cadru) || {}; const mon = o.moneda === 'RON' ? 'RON' : 'EUR';
@@ -320,6 +336,7 @@
       oreTot = L.fmt((o.ore || []).reduce((s, r) => s + n(r.ore), 0));
     }
     return {
+      cadruTitlu: cd.domeniu === 'servicii' ? 'CONTRACT CADRU DE PRESTĂRI SERVICII' : 'CONTRACT CADRU PRESTARE SERVICII DE PROIECTARE',
       anexaNr: String(a.nr || '01').padStart(2, '0'), anexaData: L.dataRo(a.data), cadruNr: cd.nr || '____', cadruData: cd.data ? L.dataRo(cd.data) : '',
       obiect: a.obiect || o.obiectiv || '', linii, oreTot, totTxt: L.bani(tot, mon),
       notaPret: mon === 'RON' ? 'Preturile nu contin TVA.' : 'Plata se va face in lei, la cursul BNR din ziua emiterii facturii. Preturile nu contin TVA.',
