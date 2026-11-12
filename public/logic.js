@@ -46,8 +46,24 @@
     return t;
   };
 
-  /* Totaluri pentru o ofertă (orice tip) */
+  /* Discount doar la arhitectură: sumă fixă (dacă e trecută) sau procent din arhitectură */
+  L.discVal = (o, arh) => { const d = o.disc || {}; const sum = n(d.sum); if (sum > 0) return Math.min(sum, arh); const p = n(d.pct); return p > 0 ? arh * Math.min(p, 100) / 100 : 0; };
+  L.applyDisc = (t, o) => {
+    const cota = n(o.cotaTva || 21); const D = L.discVal(o, t.arh); t.arhBrut = t.arh; t.disc = D;
+    if (!D) return t;
+    const f = o.tva?.arh ? 1 + cota / 100 : 1;
+    t.arh -= D; t.prestator -= D; t.total -= D;
+    if (t.arhTva !== undefined) t.arhTva = t.arh * f;
+    t.prestatorTva -= D * f; t.totalTva -= D * f;
+    return t;
+  };
+  /* Totaluri pentru o ofertă (orice tip), cu discountul aplicat */
   L.totals = (o) => {
+    const t = L.totalsBrut(o);
+    if (t.arh === undefined) t.arh = t.prestator;
+    return L.applyDisc(t, o);
+  };
+  L.totalsBrut = (o) => {
     const cota = n(o.cotaTva || 21);
     const fx = (o.moneda === 'RON' && n(o.curs)) ? 1 / n(o.curs) : 1;
     if (o.tip === 'ore') {
@@ -65,7 +81,7 @@
   };
   /* Onorariul de arhitectură care contează după contractare: calculul final dacă există, altfel oferta */
   L.arhFinal = (o) => {
-    if (o.tip === 'mp' && o.final && (o.final.zone || []).length) return L.calcZone(o.final.zone, o.tva, o.cotaTva).prestator;
+    if (o.tip === 'mp' && o.final && (o.final.zone || []).length) return L.applyDisc(L.calcZone(o.final.zone, o.tva, o.cotaTva), o).prestator;
     if (o.contract && o.contract.onorariu !== undefined && o.contract.onorariu !== '' && o.contract.onorariu !== null && isFinite(parseFloat(o.contract.onorariu))) return n(o.contract.onorariu);
     return L.totals(o).prestator;
   };
@@ -143,6 +159,7 @@
   /* ---------- date pentru șablonul de ofertă */
   L.dataOferta = (o, settings) => {
     const t = L.totals(o);
+    const tb = L.totalsBrut(o); // tabelele arată valorile înainte de discount
     const isMp = o.tip === 'mp';
     const tva = o.tva || {};
     const cota = n(o.cotaTva || 21);
@@ -163,6 +180,10 @@
     }
     lines(o.estimari).forEach((x) => estim.push(x));
     const note = [];
+    if (t.disc) {
+      const d = o.disc || {}; const pctTxt = n(d.sum) > 0 ? '' : ' (' + L.fmt(d.pct) + '%)';
+      note.push('Discount la proiectul de arhitectura' + pctTxt + (d.motiv ? ' – ' + d.motiv : '') + ': -' + L.eur(t.disc) + '. Onorariul pentru arhitectura' + (t.rel ? ' (inclusiv releveu)' : '') + ' devine ' + L.eur(t.prestator) + ' fara TVA' + (o.tva?.arh ? ' / ' + L.eur(t.prestatorTva) + ' cu TVA' : '') + '.');
+    }
     if (isMp) note.push(tvaFraza(o));
     else note.push(o.tva?.arh ? 'Sumele nu includ TVA ' + cota + '%.' : 'Sumele nu includ TVA.');
     lines(o.note).forEach((x) => note.push(x));
@@ -185,16 +206,16 @@
       areEstimari: estim.length > 0, intro_estimari: 'La redactarea ofertei ne-am bazat pe urmatoarele estimari :', estimari: estim,
       isMp, isOre: o.tip === 'ore', isForf: o.tip === 'forfetar',
       zone: (o.zone || []).map((z) => ({ den: z.den, mp: L.fmt(z.mp), arh: L.fmt(z.arh), rez: L.fmt(z.rez), inst: L.fmt(z.inst) })),
-      mpTot: L.fmt(t.mp), arhTot: L.eur(t.arh), rezTot: L.eur(t.rez), instTot: L.eur(t.inst),
+      mpTot: L.fmt(t.mp), arhTot: L.eur(tb.arh), rezTot: L.eur(t.rez), instTot: L.eur(t.inst),
       invTot: t.inv ? L.eur(t.inv) : '-',
-      arhPct: t.inv ? L.pct(t.arh / t.inv) : '', rezPct: t.inv ? L.pct(t.rez / t.inv) : '', instPct: t.inv ? L.pct(t.inst / t.inv) : '',
-      tvaRandLabel: tvaLbl, arhTva: L.eur(t.arhTva), rezTva: L.eur(t.rezTva), instTva: L.eur(t.instTva),
+      arhPct: t.inv ? L.pct(tb.arh / t.inv) : '', rezPct: t.inv ? L.pct(t.rez / t.inv) : '', instPct: t.inv ? L.pct(t.inst / t.inv) : '',
+      tvaRandLabel: tvaLbl, arhTva: L.eur(tb.arhTva), rezTva: L.eur(t.rezTva), instTva: L.eur(t.instTva),
       areExistent: ex && zoneEx.length > 0, zoneEx, relTot: L.eur(t.rel), expTot: L.eur(t.exp), relExpTot: L.eur(n(t.rel) + n(t.exp)),
       totalGeneralTxt,
       ore: (o.ore || []).map((r, i) => ({ nr: i + 1, den: r.den, ore: L.fmt(r.ore), tarif: L.fmt(r.tarif), cost: L.eur(n(r.ore) * n(r.tarif)) })),
-      oreTot: L.fmt(t.ore || 0), oreCostTot: L.eur(t.total),
+      oreTot: L.fmt(t.ore || 0), oreCostTot: L.eur(tb.total) + (t.disc ? ' (după discount: ' + L.eur(t.total) + ')' : ''),
       forfetar: (o.forfetar || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: r.desc || '', cost: L.eur(r.cost), durata: r.durata || '' })),
-      forfTot: L.eur(t.total),
+      forfTot: L.eur(tb.total) + (t.disc ? ' (după discount: ' + L.eur(t.total) + ')' : ''),
       note, areEtape: etape.length > 0, etape,
       titluEtape: isMp ? 'Defalcare pe etape' : 'Esalonarea platilor',
       areExcluse: lines(o.excluse).length > 0, excluse: lines(o.excluse),
@@ -218,7 +239,7 @@
     const cuTva = o.firma === 'arhideea' && !!o.tva?.arh;
     const cota = n(o.cotaTva || 21);
     const zonele = isMp && o.final && (o.final.zone || []).length && c.dinFinal ? o.final.zone : o.zone;
-    const t = isMp ? L.calcZone(zonele, o.tva, cota) : L.totals(o);
+    const t = isMp ? L.applyDisc(L.calcZone(zonele, o.tva, cota), o) : L.totals(o);
     const onor = t.prestator;
     const ex = isMp && (o.existent || (zonele || []).some((z) => n(z.exp) || n(z.rel)));
     const rel = isMp && (zonele || []).some((z) => n(z.rel));

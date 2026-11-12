@@ -499,6 +499,13 @@ function renderForm() {
       ${d.tip === 'mp' ? `<label class="check"><input type="checkbox" data-c="tva.rez" ${d.tva.rez ? 'checked' : ''}> TVA la rezistență</label><label class="check"><input type="checkbox" data-c="tva.inst" ${d.tva.inst ? 'checked' : ''}> TVA la instalații</label>` : ''}
       <label class="check">Cota TVA <input data-p="cotaTva" data-num="1" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.cotaTva ?? 21)}">%</label>
     </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+      <b style="font-size:14px">Discount la arhitectură</b>
+      <label class="check"><input data-p="disc.pct" data-num="1" inputmode="decimal" placeholder="0" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.disc?.pct || '')}">%</label>
+      <label class="check">sau <input data-p="disc.sum" data-num="1" inputmode="decimal" placeholder="0" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.disc?.sum || '')}">€</label>
+      <input data-p="disc.motiv" placeholder="motiv (opțional, apare în ofertă) – ex. client recurent" style="flex:1;min-width:200px;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.disc?.motiv || '')}">
+      <span class="sub" id="discInfo">${t.disc ? '−' + L.eur(t.disc) + ' din ' + L.eur(t.arhBrut) : 'se aplică doar la arhitectură; rezistența și instalațiile rămân la fel'}</span>
+    </div>
   </div></details>
 
   <details class="card" data-k="et" ${op('et', d.tip === 'mp')}><summary>Etape și eșalonare <span class="sub ${Math.abs(sumPct - 100) > 0.01 && (d.etape || []).length ? 'badline' : ''}">${L.fmt(sumPct)}%</span></summary><div class="bd">
@@ -716,6 +723,7 @@ function liveCalc() {
 
 function renderSummary() {
   const d = S.draft; if (!d) return; const t = L.totals(d);
+  const di = $('#discInfo'); if (di) di.textContent = t.disc ? '−' + L.eur(t.disc) + ' din ' + L.eur(t.arhBrut) : 'se aplică doar la arhitectură; rezistența și instalațiile rămân la fel';
   const fz = d.tip === 'mp' && d.final ? L.calcZone(d.final.zone, d.tva, d.cotaTva) : null;
   const paid = paidFor((p) => p.offerId === d.id);
   const contr = L.esteContractata(d);
@@ -726,10 +734,12 @@ function renderSummary() {
   <div class="sumcard"><h3>Onorariu arhitectură${t.rel ? ' + releveu' : ''}</h3>
     <div class="big">${L.eur(t.prestator)}</div>
     <div class="sub">${cuTva ? L.eur(t.prestatorTva) + ' cu TVA' : 'fără TVA (BIA)'}${t.inv && d.tip === 'mp' ? ' · ' + L.pct(t.prestator / t.inv) + ' din investiție' : ''}</div>
+    ${t.disc ? `<div class="sub" style="margin-top:4px">după discount de ${L.eur(t.disc)}${d.disc?.sum > 0 ? '' : ' (' + L.fmt(d.disc?.pct) + '%)'} din ${L.eur(t.arhBrut)}</div>` : ''}
   </div>
   ${d.tip === 'mp' ? `<div class="sumcard"><h3>Ofertă completă</h3><div class="kv">
     <span>Suprafață</span><span>${L.fmt(t.mp)} mp</span>
-    <span>Arhitectură</span><span>${L.eur(t.arh)}</span>
+    ${t.disc ? `<span>Arhitectură (brut)</span><span>${L.eur(t.arhBrut)}</span><span>Discount${d.disc?.sum > 0 ? '' : ' ' + L.fmt(d.disc?.pct) + '%'}</span><span>−${L.eur(t.disc)}</span>` : ''}
+    <span>Arhitectură${t.disc ? ' după discount' : ''}</span><span>${L.eur(t.arh)}</span>
     ${t.rel ? `<span>Releveu</span><span>${L.eur(t.rel)}</span>` : ''}
     ${t.exp ? `<span class="mut">Expertiză (colab.)</span><span>${L.eur(t.exp)}</span>` : ''}
     <span class="mut">Rezistență (colab.)</span><span>${L.eur(t.rez)}</span>
