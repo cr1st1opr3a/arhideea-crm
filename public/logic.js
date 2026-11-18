@@ -157,6 +157,39 @@
   L.obiectivComplet = (o) => [o.obiectiv, L.clientEticheta(o), o.localitate, o.adresa].filter(Boolean).join(', ');
 
   /* ---------- date pentru șablonul de ofertă */
+  /* ===== Misiunile arhitectului (OAR – Sistemul de Informații asupra Costurilor, 2014) =====
+     f = faza din ofertă (0 avans, 1 SF, 2 DTAC, 3 PT, 4 asistență execuție, 5 consultanță ofertare execuție, 6 în afara etapelor)
+     s = misiune suplimentară, d = inclusă implicit (selecția lui Cristi, nov. 2026) */
+  L.MISIUNI = [
+    ['1.1.1', 'Tema pentru ofertare', 0, 0, 1], ['1.1.2', 'Oferta economică', 0, 0, 1], ['1.1.3', 'Acceptarea ofertei și încheierea contractului de proiectare', 0, 0, 1], ['1.1.4', 'Analiza contextului urbanistic, tehnic și legislativ', 0, 0, 1],
+    ['1.2.1', 'Consultanța imobiliară', 0, 1, 0], ['1.2.2', 'Ilustrarea de temă în scop de ofertare', 0, 1, 0], ['1.2.3', 'Studiul de prefezabilitate', 0, 1, 0],
+    ['2.1.1', 'Tema preliminară de proiectare', 1, 0, 1], ['2.1.2', 'Documente și studii necesare', 1, 0, 1], ['2.1.3', 'Specialiști necesar a fi implicați în elaborarea proiectului', 1, 0, 1], ['2.1.4', 'Ilustrarea de temă', 1, 0, 1], ['2.1.5', 'Bugetare costuri investiție', 1, 0, 1], ['2.1.6', 'Planificarea desfășurării investiției', 1, 0, 1], ['2.1.7', 'Releveu', 1, 0, 'rel'],
+    ['2.2.1', 'Studiu de ilustrare comparativ (pe variante)', 1, 1, 1], ['2.2.2', 'Solicitarea, urmărirea și ridicarea certificatului de urbanism și a avizelor preliminare', 1, 1, 0], ['2.2.3', 'Bugetare costuri de operare', 1, 1, 0], ['2.2.4', 'Consultanță privind modificarea regimului tehnic și economic al imobilului', 1, 1, 0],
+    ['3.1.1', 'Conceptul general și de arhitectură', 1, 0, 1], ['3.1.2', 'Planificarea desfășurării investiției', 1, 0, 1],
+    ['3.2.1', 'Realizarea de variante suplimentare', 1, 1, 1], ['3.2.2', 'Verificarea de încadrare în buget', 1, 1, 1], ['3.2.3', 'Estimarea costului investiției', 1, 1, 1], ['3.2.4', 'Estimare costuri de operare', 1, 1, 1], ['3.2.5', 'Proiectare pentru un impact redus asupra mediului', 1, 1, 1],
+    ['4.1.1', 'Tema detaliată (definitivă)', 2, 0, 1], ['4.1.2', 'Proiectul definitiv prezentat la nivel schematic', 2, 0, 1], ['4.1.3', 'Planificarea desfășurării investiției', 2, 0, 1], ['4.1.4', 'Teme pentru realizarea proiectelor de specialitate', 2, 0, 1], ['4.1.5', 'Coordonarea preliminară a proiectului', 2, 0, 1],
+    ['4.2.1', 'Calcularea fezabilității investiției sau DALI', 2, 1, 0], ['4.2.2', 'Solicitarea, urmărirea și ridicarea de avize și acorduri', 2, 1, 0], ['4.2.3', 'Verificarea încadrării în buget', 2, 1, 1], ['4.2.4', 'Estimarea costului investiției', 2, 1, 0], ['4.2.5', 'Indicarea în proiect a producătorilor, produselor și furnizorilor', 2, 1, 0],
+    ['5.1.1', 'Proiectarea pentru autorizare (DTAC)', 2, 0, 1], ['5.1.2', 'Estimarea costurilor de construcție', 2, 0, 0], ['5.2.1', 'Depunerea documentației, urmărirea și ridicarea avizelor și a autorizației de construire', 2, 1, 0],
+    ['6.1.1', 'Proiectarea tehnică (proiect pentru evaluare/ofertare)', 3, 0, 0], ['6.1.2', 'Coordonarea tehnică a proiectelor de specialitate', 3, 0, 0], ['6.2.1', 'Estimarea costurilor investiției', 3, 1, 0], ['6.2.3', 'Estimarea costurilor de operare/întreținere', 3, 1, 0],
+    ['7.1.1', 'Proiectarea de detaliu', 3, 0, 1], ['7.1.2', 'Coordonarea de detaliu a proiectelor', 3, 0, 1], ['7.1.3', 'Plan de sănătate și securitate în muncă (SSM)', 3, 0, 0],
+    ['8.1', 'Consultanță la selecția ofertelor de execuție (documentație de licitație, listă scurtă, recomandare, contractare)', 5, 1, 0],
+    ['9.1.1', 'Participarea la fazele determinante', 4, 0, 1], ['9.1.2', 'Supravegherea modalității de executare a lucrărilor', 4, 0, 1], ['9.1.3', 'Project management', 4, 0, 0], ['9.1.4', 'Recepția la terminarea lucrărilor', 4, 0, 0], ['9.1.5', 'Punerea în funcțiune / darea în folosință', 4, 0, 0],
+    ['9.2.1', 'Asistența tehnică', 4, 1, 0], ['9.2.2', 'Proiecte de fabricație', 4, 1, 0], ['9.2.3', 'Reevaluare costuri de execuție', 4, 1, 0],
+    ['10.1', 'Urmărirea comportării în exploatare și acordul proiectantului inițial', 6, 1, 0], ['11.1', 'Susținerea proiectului și materiale pentru marketing', 6, 1, 0],
+  ].map(([c, t, f, s, d]) => ({ c, t, f, s: !!s, d }));
+  L.FAZE_MIS = ['Avans', 'Ante-proiect (SF)', 'Proiect pentru autorizare (DTAC)', 'Proiect tehnic (PT)', 'Asistență tehnică la execuție', 'Consultanță la selecția ofertelor de execuție', 'Alte misiuni'];
+  L.misDefault = (o, m) => m.d === 'rel' ? (o.zone || []).some((z) => n(z.rel) > 0) : !!m.d;
+  L.misOn = (o, m) => { const v = (o.misiuni || {})[m.c]; return v === undefined ? L.misDefault(o, m) : !!v; };
+  L.misSup = (o) => ({ ore: o.misSup?.ore ?? 10, tarif: o.misSup?.tarif ?? 50 });
+  L.misText = (o, m) => m.c === '9.1.2' ? m.t + ` – inclusă în limita a ${L.fmt(L.misSup(o).ore)} ore; peste această limită se tarifează ${L.fmt(L.misSup(o).tarif)} EUR/oră` : m.t;
+  L.misiuniOferta = (o) => {
+    if (o.domeniu === 'servicii' || o.anexa || o.misOff) return { areMis: false, misFaze: [], misExcl: [] };
+    const et = o.etape || []; const fazaNume = (i) => (i <= 3 && et[i] && et.length >= 4 ? et[i].den : L.FAZE_MIS[i]);
+    const misFaze = [];
+    L.FAZE_MIS.forEach((_, i) => { const items = L.MISIUNI.filter((m) => m.f === i && L.misOn(o, m)).map((m) => m.c + ' ' + L.misText(o, m)); if (items.length) misFaze.push({ faza: fazaNume(i), items }); });
+    const misExcl = L.MISIUNI.filter((m) => m.s && !L.misOn(o, m)).map((m) => m.c + ' ' + m.t);
+    return { areMis: misFaze.length > 0, misFaze, misExcl };
+  };
   L.dataOferta = (o, settings) => {
     const t = L.totals(o);
     const tb = L.totalsBrut(o); // tabelele arată valorile înainte de discount
@@ -218,7 +251,7 @@
       forfTot: L.eur(tb.total) + (t.disc ? ' (după discount: ' + L.eur(t.total) + ')' : ''),
       note, areEtape: etape.length > 0, etape,
       titluEtape: isMp ? 'Defalcare pe etape' : 'Esalonarea platilor',
-      areExcluse: lines(o.excluse).length > 0, excluse: lines(o.excluse),
+      ...(() => { const M = L.misiuniOferta(o); const ex = lines(o.excluse); if (M.misExcl.length) ex.push('Misiunile suplimentare neincluse mai sus (se pot oferta separat, la cerere): ' + M.misExcl.join('; ') + '.'); return { ...M, areExcluse: ex.length > 0, excluse: ex }; })(),
       plataTxt: o.plata || L.DEF.plata,
       semnatura: (settings && settings.semnatura) || 'Arh. Cristian Oprea',
     };
@@ -290,6 +323,7 @@
     const regim = c.regim || {};
     const excl = lines(o.excluse);
     if (isMp) excl.unshift('Proiectele de rezistență și instalații, verificarea acestora' + (ex ? ' și expertiza tehnică' : '') + ' (contractate direct de Beneficiar);');
+    if (o.domeniu !== 'servicii' && L.misOn(o, L.MISIUNI.find((m) => m.c === '9.1.2'))) { const ms = L.misSup(o); excl.push(`Supravegherea modalității de executare a lucrărilor peste ${L.fmt(ms.ore)} ore (incluse în onorariu) – se tarifează ${L.fmt(ms.tarif)} EUR/oră, pe baza situației de lucru.`); }
     return {
       cNr: c.nr || '____', cAn: (c.data || o.data || '').slice(0, 4) || String(new Date().getFullYear()),
       cData: c.data ? L.dataRo(c.data) : '____.____.' + new Date().getFullYear(),

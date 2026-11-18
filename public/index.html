@@ -448,7 +448,7 @@ function viewEditor() {
   if (S.etabFor !== d.id) { S.etabFor = d.id; S.etab = (['contractată', 'în lucru', 'finalizată'].includes(d.status) || d.anexa) ? 'bani' : 'oferta'; }
   renderForm(); renderSummary();
 }
-const ETAB_OF = { anx: 'oferta', gen: 'oferta', calc: 'oferta', et: 'oferta', txt: 'oferta', fin: 'oferta', ctr: 'contract', cart: 'proiect', cu: 'proiect', pl: 'bani', ch: 'bani', int: 'note' };
+const ETAB_OF = { mis: 'oferta', anx: 'oferta', gen: 'oferta', calc: 'oferta', et: 'oferta', txt: 'oferta', fin: 'oferta', ctr: 'contract', cart: 'proiect', cu: 'proiect', pl: 'bani', ch: 'bani', int: 'note' };
 function renderTabs() {
   const d = S.draft; const nav = $('#etabs'); if (!nav || !d) return;
   const cus = cuFor(d.id); const f = fin(d); const nch = [...S.ch.values()].filter((x) => x.offerId === d.id && !x.recuperat).length;
@@ -510,6 +510,7 @@ function renderForm() {
     </div>
   </div></details>
 
+  ${L.esteServicii(d) || d.anexa ? '' : `<details class="card" data-k="mis" ${op('mis', false)}><summary>Misiunile arhitectului <span class="sub" id="misSum">${misSumTxt(d)}</span></summary><div class="bd" id="misBody">${misBody(d)}</div></details>`}
   <details class="card" data-k="et" ${op('et', d.tip === 'mp')}><summary>Etape și eșalonare <span class="sub ${Math.abs(sumPct - 100) > 0.01 && (d.etape || []).length ? 'badline' : ''}">${L.fmt(sumPct)}%</span></summary><div class="bd">
     <div class="rows"><table class="ed"><thead><tr><th style="width:22%">Etapă</th><th>Descriere (apare în ofertă și contract)</th><th style="width:70px">%</th><th style="width:18%">Moment facturare</th><th style="width:18%">Durată</th><th class="n" style="width:90px">Sumă</th><th></th></tr></thead><tbody>
     ${(d.etape || []).map((e, i) => `<tr><td><textarea data-p="etape.${i}.den" rows="2">${esc(e.den)}</textarea></td><td><textarea data-p="etape.${i}.desc" rows="2">${esc(e.desc)}</textarea></td><td class="nn"><input data-p="etape.${i}.pct" data-num="1" value="${esc(e.pct)}"></td><td><textarea data-p="etape.${i}.cond" rows="2">${esc(e.cond)}</textarea></td><td><textarea data-p="etape.${i}.durata" rows="2">${esc(e.durata)}</textarea></td><td class="calc" data-et="${i}">${L.eur(t.prestator * L.n(e.pct) / 100)}</td><td><button class="x" data-del="etape.${i}" title="Șterge etapa">×</button></td></tr>`).join('')}
@@ -616,6 +617,16 @@ async function downloadProjectInfo() {
   await save(name, new Blob([L.projectInfoXml(v)], { type: 'application/xml' }));
 }
 
+/* -------- misiunile arhitectului (OAR – SIC) -------- */
+function misSumTxt(d) { if (d.misOff) return 'nu apar în ofertă'; const on = L.MISIUNI.filter((m) => L.misOn(d, m)); const dif = L.MISIUNI.filter((m) => L.misOn(d, m) !== L.misDefault(d, m)).length; return on.length + ' incluse' + (dif ? ' · ' + dif + ' modificate față de implicit' : ''); }
+function misBody(d) {
+  const ms = L.misSup(d);
+  return `<div class="sub" style="margin-bottom:8px">Conform documentului OAR „Misiunile arhitectului” (SIC). Misiunile bifate apar în ofertă, grupate pe etape; cele suplimentare nebifate apar la „Nu sunt incluse”. Selecția implicită e cea marcată de tine în document.</div>
+  <label class="check" style="margin-bottom:8px"><input type="checkbox" data-c="misOff" ${d.misOff ? 'checked' : ''}> Nu include lista de misiuni în această ofertă</label>
+  ${L.FAZE_MIS.map((fz, i) => { const ms2 = L.MISIUNI.filter((m) => m.f === i); return `<div style="margin:8px 0 2px;font-weight:600;font-size:14px">${esc(fz)}</div>` + ms2.map((m) => `<label class="check" style="display:flex;gap:8px;align-items:flex-start;padding:2px 0;font-size:14px"><input type="checkbox" data-mis="${m.c}" ${L.misOn(d, m) ? 'checked' : ''}><span><span class="num sub">${m.c}</span> ${esc(m.t)}${m.s ? ' <span class="tag">suplimentară</span>' : ''}${L.misOn(d, m) !== L.misDefault(d, m) ? ' <span class="sub">(modificat)</span>' : ''}</span></label>`).join(''); }).join('')}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px"><span class="sub">9.1.2 Supraveghere inclusă:</span><label class="check"><input data-p="misSup.ore" data-num="1" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(ms.ore)}"> ore</label><label class="check">apoi <input data-p="misSup.tarif" data-num="1" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(ms.tarif)}"> EUR/oră</label>
+  <button class="btn small" data-misreset="1">Revino la selecția implicită</button></div>`;
+}
 function contractEditor() {
   const d = S.draft;
   if (!d.contract) return `<p class="sub" style="margin:0">Completezi datele beneficiarului (poți încărca buletinul, CU-ul sau extrasul CF și le citesc eu), apoi descarci contractul .docx pe modelul tău. În contract intră doar onorariul de arhitectură${d.tip === 'mp' ? '; rezistența și instalațiile apar informativ în Anexa 3' : ''}.</p><div><button class="btn primary" id="toCtr">Transformă în contract</button></div>`;
@@ -688,7 +699,8 @@ function bindForm() {
   };
   f.onchange = (e) => {
     const el = e.target;
-    if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
+    if (el.dataset.mis) { S.draft.misiuni = { ...(S.draft.misiuni || {}) }; const m = L.MISIUNI.find((x) => x.c === el.dataset.mis); if (el.checked === L.misDefault(S.draft, m)) delete S.draft.misiuni[m.c]; else S.draft.misiuni[m.c] = el.checked; $('#misSum').textContent = misSumTxt(S.draft); scheduleSave(); return; }
+    if (el.dataset.c) { setPath(S.draft, el.dataset.c, el.checked); if (el.dataset.c === 'misOff') { $('#misSum').textContent = misSumTxt(S.draft); } if (el.dataset.c === 'existent' || el.dataset.c === 'contract.dinFinal') renderForm(); liveCalc(); scheduleSave(); }
     if (el.dataset.p === 'firma') { S.draft.tva.arh = el.value === 'arhideea'; renderForm(); renderSummary(); scheduleSave(); }
     if (el.dataset.p === 'domeniu') { if (S.draft.domeniu === 'servicii' && S.etab === 'proiect') S.etab = 'oferta'; renderForm(); renderSummary(); scheduleSave(); return; }
     if (el.dataset.p === 'contract.nr') { reserveContractNr(S.draft); if (['ciornă', 'trimisă'].includes(S.draft.status) && S.draft.contract.nr) { S.draft.status = 'contractată'; renderForm(); renderSummary(); } scheduleSave(); }
@@ -709,6 +721,7 @@ function bindForm() {
     if (b.id === 'toCtr') { d.contract = { nr: '', data: L.ofertaNoua(sett()).data, ben: { tip: 'PF', nume: d.clientNume }, investitie: '', amplasament: '', cf: '', nrCad: '', regim: {} }; const c = S.clients.get(d.clientId); if (c) Object.assign(d.contract.ben, { tel: c.tel || '', email: c.email || '', domiciliu: c.adresa || '', cnp: c.cnp || '', ciSerie: c.ciSerie || '', ciNr: c.ciNr || '' }); renderForm(); scheduleSave(); return; }
     if (b.id === 'ctrNr') { d.contract.nr = String(sett().nextContract[d.firma]); reserveContractNr(d); if (d.status === 'ciornă' || d.status === 'trimisă') d.status = 'contractată'; renderForm(); renderSummary(); scheduleSave(); toast('Contract nr. ' + d.contract.nr + ' înregistrat'); return; }
     if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
+    if (b.dataset.misreset) { S.draft.misiuni = {}; $('#misBody').innerHTML = misBody(S.draft); $('#misSum').textContent = misSumTxt(S.draft); scheduleSave(); return; }
     if (b.id === 'dlCtr') { await downloadContract(); return; }
     if (b.id === 'toCadru') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmă: devine contract-cadru, oferta = Anexa 01'; return; } await toCadru(); return; }
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
