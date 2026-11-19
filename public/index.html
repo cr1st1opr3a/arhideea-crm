@@ -1245,7 +1245,14 @@ function saveCu(c) { S.cu.set(c.id, c); clearTimeout(cuTimers[c.id]); cuTimers[c
 
 const CU_PROMPT = `Documentul atașat este un Certificat de urbanism (CU) emis în România. Extrage datele în acest format JSON:
 {"nr":"numărul certificatului","dataEmitere":"AAAA-LL-ZZ","valabilitateLuni":număr de luni de valabilitate (convertește din zile/ani dacă e cazul),"dataExpirare":"AAAA-LL-ZZ doar dacă e scrisă explicit, altfel șir gol","emitent":"autoritatea emitentă","solicitant":"","scop":"scopul emiterii / denumirea lucrării","amplasament":"adresa imobilului","cf":"număr carte funciară","nrCad":"număr cadastral sau topografic","suprafataTeren":"suprafața terenului în mp, doar numărul (ex. 691), sau șir gol","regim":"pe scurt, regimul tehnic relevant (POT, CUT, regim de înălțime, retrageri) într-un rând","avize":[{"den":"denumirea avizului / acordului / studiului cerut","categorie":"utilități | mediu | securitate și sănătate | cultură | alte avize | studii | documente"}]}
-În "avize" pune TOATE avizele și acordurile bifate sau cerute (utilități: apă, canalizare, energie electrică, gaze, telefonizare, salubritate; securitate la incendiu, protecție civilă, sănătatea populației; actul autorității de mediu; avize/acorduri specifice; studii de specialitate precum studiu geotehnic, ridicare topografică vizată OCPI; alte documente cerute pentru autorizare). Nu include taxe și nu include elemente nebifate. Pune doar ce scrie în document.`;
+În "avize" pune TOATE elementele pe care certificatul le cere pentru obținerea autorizației, parcurgând integral secțiunea „Documentele necesare pentru autorizare” (inclusiv anexele și pagina a doua), în ordinea din document:
+- documente: dovada titlului asupra imobilului / extras CF, dovada înregistrării proiectului la Ordinul Arhitecților din România (dovada OAR), documentația cadastrală, punctul de vedere / actul autorității de mediu, dovezi de plată cerute, orice alt document enumerat;
+- documentația tehnică (D.T.): fiecare componentă cerută separat – DTAC / DTOE / DTAD, memoriile pe specialități (arhitectură, structură, instalații: sanitare, termice, electrice, gaze etc.), planșele cerute, expertize și verificări de proiect cerute;
+- avize și acorduri privind utilitățile (alimentare cu apă, canalizare, energie electrică, gaze naturale, telefonizare, salubritate, termoficare, transport urban);
+- avize privind securitatea la incendiu, protecția civilă, sănătatea populației; actul administrativ al autorității de mediu;
+- avize / acorduri specifice (cultură, drumuri, aviație, apărare, rețele, circulație, ISU, ANIF, Apele Române etc.);
+- studii de specialitate (geotehnic, topografic vizat OCPI, energetic / sisteme alternative, însorire, impact, trafic etc.).
+Include atât elementele marcate (bifate, subliniate, completate de mână), cât și pe cele tipărite ca obligatorii fără căsuță de bifat; exclude DOAR elementele care au o căsuță de bifat lăsată goală sau care sunt tăiate. Nu include taxele (doar dacă e cerută explicit o dovadă de plată ca document). Folosește denumirea scurtă din document (ex. „Memoriu instalații”, „Dovada OAR”), fără duplicate. Pune doar ce scrie în document.`;
 
 async function uploadFile(file) {
   const fd = new FormData(); fd.append('file', file);
@@ -1350,10 +1357,10 @@ async function readCu(c, msg) {
     ['nr', 'dataEmitere', 'emitent', 'solicitant', 'scop', 'amplasament', 'cf', 'nrCad', 'suprafataTeren', 'regim'].forEach((k) => { if (r[k]) c[k] = String(r[k]).trim(); });
     if (L.n(r.valabilitateLuni)) c.valabilitateLuni = L.n(r.valabilitateLuni);
     if (r.dataExpirare) { c.dataExpirare = r.dataExpirare; c._expAuto = false; }
-    const have = new Set((c.avize || []).map((a) => norm(a.den)));
+    const have = new Set((c.avize || []).map((a) => norm(a.den))); const before = (c.avize || []).length;
     (r.avize || []).forEach((a) => { const den = typeof a === 'string' ? a : a.den; if (den && !have.has(norm(den))) { (c.avize = c.avize || []).push({ den, categorie: a.categorie || '', obtinut: false }); have.add(norm(den)); } });
     S.cu.set(c.id, c); await write('cu', c.id, c); renderCuCard(); updateBadge();
-    const m = $('#cuMsg'); if (m) m.textContent = `Am citit CU ${c.nr || ''}: ${(c.avize || []).length} avize/documente cerute. Verifică datele.`;
+    const added = (c.avize || []).length - before; const m = $('#cuMsg'); if (m) m.textContent = `Am citit CU ${c.nr || ''}: ${(c.avize || []).length} avize/documente cerute${before ? ` (${added} noi față de lista existentă)` : ''}. Verifică datele.`;
   } catch (er) { const m = $('#cuMsg'); if (m) m.textContent = 'Nu am putut citi automat: ' + er.message + '. Poți completa manual.'; }
 }
 

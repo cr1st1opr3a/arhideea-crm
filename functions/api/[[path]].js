@@ -30,7 +30,7 @@ async function ai(env, prompt, parts) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: env.ANTHROPIC_MODEL || MODEL, max_tokens: 4000, messages: [{ role: 'user', content }] }),
+    body: JSON.stringify({ model: env.ANTHROPIC_MODEL || MODEL, max_tokens: 8000, messages: [{ role: 'user', content }] }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error('Anthropic: ' + (j.error?.message || r.status));
