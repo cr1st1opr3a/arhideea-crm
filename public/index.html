@@ -773,7 +773,8 @@ function renderSummary() {
       return `<div class="sub" style="margin-bottom:6px">Cât din proiect e realizat? Suma exigibilă se calculează din fazele contractului.</div>
       <div class="chips" style="margin-bottom:8px"><button class="chip" data-prog="0" aria-pressed="${f.pr === 0}">0%</button>${chips.map((c) => `<button class="chip" data-prog="${c.v}" aria-pressed="${f.pr === c.v}" title="${esc(c.lbl)}">${L.fmt(c.v)}% · ${esc(c.lbl)}</button>`).join('')}</div>
       <label class="check" style="margin-bottom:8px">Realizat <input data-p="progres" data-num="1" style="width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg)" value="${esc(d.progres ?? '')}" placeholder="${f.pr ?? ''}">%</label>
-      <div class="kv"><span>Valoare contract (fără TVA)</span><span>${L.eur(f.due)}</span><span>Exigibil (${f.pr == null ? '–' : L.fmt(f.pr) + '%'})</span><span>${L.eur(f.earned)}</span><span>Încasat</span><span>${L.eur(f.paid)}</span>
+      ${L.onorFix(d) && Math.abs(L.n(d.contract.onorariu) - L.totals(d).prestator) > 0.5 && !(d.tip === 'mp' && d.final) ? `<div class="warnline" style="margin-bottom:6px">Valoarea contractului e onorariul contractat (${L.eur(d.contract.onorariu)}), nu calculul ofertei (${L.eur(L.totals(d).prestator)}). <button class="btn small" id="useCalc">Folosește ${L.eur(L.totals(d).prestator)}</button></div>` : ''}
+      <div class="kv"><span>Valoare contract (fără TVA)${L.onorFix(d) ? ' <span class="sub">· onorariu contractat</span>' : ''}</span><span>${L.eur(f.due)}</span><span>Exigibil (${f.pr == null ? '–' : L.fmt(f.pr) + '%'})</span><span>${L.eur(f.earned)}</span><span>Încasat</span><span>${L.eur(f.paid)}</span>
       <span class="tot">De încasat acum</span><span class="tot" style="color:${f.now > 0.5 ? 'var(--bad)' : 'var(--ok)'}">${L.eur(f.now)}</span><span class="mut">Rest până la final</span><span>${L.eur(f.rest)}</span></div>
       <div style="margin-top:8px"><button class="btn small" id="stmt">Situație plăți pentru client (PDF)</button></div>`; })()}
     ${Math.abs(sumPct - 100) > 0.01 && (d.etape || []).length ? `<div class="warnline" style="margin-top:6px">Etapele însumează ${L.fmt(sumPct)}%, nu 100%.</div>` : ''}</div>
@@ -789,6 +790,7 @@ function renderSummary() {
   $('#dlOff').onclick = downloadOffer;
   $$('[data-prog]', $('#sum')).forEach((b) => (b.onclick = () => { S.draft.progres = L.n(b.dataset.prog); scheduleSave(); renderSummary(); }));
   const pin = $('[data-p="progres"]', $('#sum')); if (pin) pin.onchange = () => { S.draft.progres = pin.value === '' ? '' : L.n(pin.value); scheduleSave(); renderSummary(); };
+  const uc = $('#useCalc'); if (uc) uc.onclick = () => { S.draft.contract.onorariu = ''; scheduleSave(); renderForm(); renderSummary(); toast('Valoarea contractului = calculul ofertei'); };
   const st = $('#stmt'); if (st) st.onclick = () => { flushSave(); printStatement(S.draft); };
   $('#dupOff').onclick = () => { flushSave(); newOffer(null, S.draft); toast('Ofertă duplicată'); };
   let pick = null;
