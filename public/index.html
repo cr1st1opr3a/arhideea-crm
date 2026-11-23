@@ -661,7 +661,7 @@ function contractEditor() {
     ${d.final ? `<label class="check"><input type="checkbox" data-c="contract.dinFinal" ${c.dinFinal ? 'checked' : ''}> Folosește suprafețele din calculul final</label>` : ''}` : ''}
   <label class="check"><input type="checkbox" data-c="contract.istoric" ${c.istoric ? 'checked' : ''}> Contract vechi, încheiat – nu urmări soldul (plățile nu sunt înregistrate aici)</label>
   ${c.fisier ? `<div class="sub">Preluat din fișierul: <span class="num">${esc(c.fisier)}</span></div>` : ''}
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small" id="toCadru" title="Contractul devine contract-cadru pe client, iar oferta aceasta devine Anexa 01">E contract-cadru (cu anexe)…</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="dlCtr">Descarcă contractul .docx</button><button class="btn small" id="splitCtr" title="Contractul și plățile lui aparțin altui proiect decât oferta aceasta">Contractul e pentru alt proiect…</button><button class="btn small" id="toCadru" title="Contractul devine contract-cadru pe client, iar oferta aceasta devine Anexa 01">E contract-cadru (cu anexe)…</button><button class="btn small danger" id="ctrDel">Anulează contractul</button></div>`;
 }
 
 function clientHint() {
@@ -723,6 +723,7 @@ function bindForm() {
     if (b.id === 'ctrDel') { if (b.dataset.sure) { d.contract = null; renderForm(); renderSummary(); scheduleSave(); } else { b.dataset.sure = 1; b.textContent = 'Sigur? Apasă din nou'; } return; }
     if (b.dataset.misreset) { S.draft.misiuni = {}; $('#misBody').innerHTML = misBody(S.draft); $('#misSum').textContent = misSumTxt(S.draft); scheduleSave(); return; }
     if (b.id === 'dlCtr') { await downloadContract(); return; }
+    if (b.id === 'splitCtr') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmă: mută contractul și plățile într-o ofertă nouă'; return; } await splitContract(); return; }
     if (b.id === 'toCadru') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmă: devine contract-cadru, oferta = Anexa 01'; return; } await toCadru(); return; }
     if (b.id === 'dlAnx') { flushSave(); try { const c = S.clients.get(d.clientId) || {}; const blob = await renderDocx('anexa', L.dataAnexa(d, c)); await save(fileSafe(`Anexa ${String(d.anexa.nr).padStart(2, '0')} contract cadru ${c.cadru?.nr || ''} ${d.clientNume}`) + '.docx', blob); } catch (er) { toast('Eroare la generarea anexei: ' + er.message, 5000); } return; }
     if (b.id === 'scanGo') { await scanDocs(); return; }
@@ -926,6 +927,26 @@ async function downloadOffer() {
 function reserveContractNr(d) {
   if (!d?.contract?.nr) return; const s = sett(); const nrv = parseInt(String(d.contract.nr).replace(/^\D+/, ''), 10);
   if (nrv && nrv >= s.nextContract[d.firma]) { const ns = clean(S.settings); ns.nextContract = { ...s.nextContract, [d.firma]: nrv + 1 }; S.settings = ns; write('settings', 'main', ns); }
+}
+/* Contract legat greșit de o ofertă (alt proiect): contractul + plățile lui trec într-o ofertă nouă */
+async function splitContract() {
+  const d = S.draft; if (!d?.contract) return;
+  const ct = d.contract; const cData = ct.data || '';
+  const o = JSON.parse(JSON.stringify(d));
+  o.id = L.uid('o_'); o.createdAt = Date.now(); o.sursa = 'separat'; o.nr = '';
+  o.data = cData || d.data; o.obiectiv = ct.investitie || d.obiectiv || '';
+  o.localitate = ''; o.adresa = ''; o.final = null; o.progres = d.progres; o.misiuni = {};
+  o.noteInterne = 'Separată din oferta „' + (d.obiectiv || '') + '” din ' + (L.dataRo(d.data) || '') + ' (contractul fusese legat greșit de ea). Verifică zonele, tarifele și amplasamentul conform contractului.';
+  o.contract = { ...ct, amplasament: '' };
+  // plățile de pe contract: cele de dinaintea datei ofertei curente (dacă oferta e mai nouă decât contractul), altfel toate
+  const lim = d.data && cData && d.data > cData ? d.data : null;
+  const moved = [...S.payments.values()].filter((p) => p.offerId === d.id && (!lim || (p.data || '') < lim));
+  S.offers.set(o.id, o); await write('offers', o.id, o);
+  await Promise.all(moved.map((p) => { p.offerId = o.id; return write('payments', p.id, p); }));
+  d.contract = null; delete d.progres; d.status = ['contractată', 'în lucru', 'finalizată'].includes(d.status) ? 'trimisă' : d.status;
+  flushSave();
+  toast(`Contractul nr. ${ct.nr} și ${moved.length} plăți au trecut într-o ofertă separată. Completează acolo zonele din contract.`, 6000);
+  go('oferta', o.id);
 }
 async function toCadru() {
   const d = S.draft; const c = S.clients.get(d.clientId);
