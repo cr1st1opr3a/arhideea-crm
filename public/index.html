@@ -1102,6 +1102,20 @@ function viewClient() {
 }
 
 /* ---------------- PAYMENTS ---------------- */
+/* Plăți importate din FGO: o factură achitată în tranșe trebuie împărțită proporțional (EUR fără TVA) */
+function payFixes() {
+  const groups = {};
+  S.payments.forEach((p) => { if (p.faraTva && p.factura && L.n(p.curs) > 0) (groups[(p.firma || '') + '|' + p.factura] = groups[(p.firma || '') + '|' + p.factura] || []).push(p); });
+  const out = [];
+  Object.values(groups).forEach((g) => {
+    const tot = g.reduce((a, p) => a + L.n(p.suma), 0); if (!tot) return;
+    const fara = Math.max(...g.map((p) => L.n(p.faraTva)));
+    let ratio = fara / tot;
+    if (!(ratio <= 1.0001 && ratio >= 0.79)) ratio = 1 / (1 + ((g[0].data || '') < '2025-08-01' ? 0.19 : 0.21));
+    g.forEach((p) => { const ok = Math.round(L.n(p.suma) * ratio / L.n(p.curs) * 100) / 100; if (Math.abs(ok - L.n(p.sumaEur)) > 0.5) out.push({ p, ok, n: g.length }); });
+  });
+  return out;
+}
 function viewPayments() {
   const all = [...S.payments.values()];
   const years = [...new Set(all.map((p) => (p.data || '').slice(0, 4)).filter(Boolean))].sort().reverse();
@@ -1110,10 +1124,17 @@ function viewPayments() {
   const tot = list.reduce((s, p) => s + L.n(p.sumaEur), 0);
   $('#main').innerHTML = `<div class="toolbar"><h2>Plăți <span class="sub">${list.length}</span></h2><select id="pY" class="btn"><option value="toți">Toți anii</option>${years.map((x) => `<option ${x === y ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
   <div class="kpis"><div class="kpi ok"><div class="lbl">Încasat ${y === 'toți' ? 'total' : y}</div><div class="val">${L.eur(tot)}</div></div></div>
+  ${(() => { const fx = payFixes(); if (!fx.length) return ''; const diff = fx.reduce((a, x) => a + L.n(x.p.sumaEur) - x.ok, 0);
+    return `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="hd">Conversii în EUR de corectat <span class="sub">${fx.length} plăți</span></div><div class="bd">
+    <div class="sub" style="margin-bottom:8px">Facturi achitate în mai multe tranșe: la import fiecare tranșă a primit valoarea întregii facturi. Corect: fiecare tranșă primește partea ei din valoarea fără TVA. Încasatul total scade cu ${L.eur(diff)}.</div>
+    <div class="tablebox"><table class="list"><thead><tr><th>Data</th><th>Client</th><th>Factura</th><th class="n">Sumă</th><th class="n">EUR acum</th><th class="n">EUR corect</th></tr></thead><tbody>
+    ${fx.sort((a, b) => (a.p.factura || '').localeCompare(b.p.factura || '') || (a.p.data || '').localeCompare(b.p.data || '')).map((x) => `<tr><td class="num">${L.dataRo(x.p.data)}</td><td>${esc(S.clients.get(x.p.clientId)?.nume || '—')}</td><td class="num">${esc(x.p.factura)} <span class="sub">(${x.n} tranșe)</span></td><td class="n">${L.fmt(x.p.suma, 2)} lei</td><td class="n" style="text-decoration:line-through;color:var(--muted)">${L.eur(x.p.sumaEur)}</td><td class="n"><b>${L.eur(x.ok)}</b></td></tr>`).join('')}
+    </tbody></table></div><button class="btn primary" id="payFix" style="margin-top:10px">Corectează aceste ${fx.length} plăți</button></div></div>`; })()}
   ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Data</th><th>Client</th><th class="n">Sumă</th><th class="n">EUR</th><th>Metodă</th><th>Descriere</th><th></th></tr></thead><tbody>
   ${list.sort((a, b) => (b.data || '').localeCompare(a.data || '')).map((p) => { const c = S.clients.get(p.clientId); return `<tr><td class="num">${L.dataRo(p.data)}</td><td>${c ? `<a href="#c-${c.id}">${esc(c.nume)}</a>` : '—'}</td><td class="n">${L.fmt(p.suma)} ${esc(p.moneda)}</td><td class="n">${L.eur(p.sumaEur)}</td><td>${esc(p.metoda)}</td><td>${esc(p.descriere)}</td><td><button class="x" data-delpay="${p.id}">×</button></td></tr>`; }).join('')}
   </tbody></table></div>` : `<div class="empty">Încă nu ai înregistrat plăți aici. Le adaugi din fișa clientului sau din ofertă (secțiunea „Plăți”).<br>Plățile vechi din Excel le găsești în „Note interne” la fiecare ofertă.</div>`}`;
   $('#pY').onchange = (e) => { S.f.payYear = e.target.value; viewPayments(); };
+  const pf = $('#payFix'); if (pf) pf.onclick = async () => { pf.disabled = true; const fx = payFixes(); await Promise.all(fx.map(({ p, ok }) => { p.sumaEur = ok; p.descriere = String(p.descriere || '').replace(/(lei fără TVA)(?! – tranșă)/, '$1 – tranșă, EUR proporțional'); S.payments.set(p.id, p); return write('payments', p.id, p); })); toast(fx.length + ' plăți corectate'); viewPayments(); };
   bindPayDeletes($('#main'), viewPayments);
 }
 
@@ -1387,6 +1408,7 @@ function alerts() {
   S.offers.forEach((o) => {
     if (o.status === 'trimisă') { const d = -daysTo(o.data); if (d >= 14) out.push({ sev: 'warn', rank: 200 - Math.min(d, 199), href: '#o-' + o.id, html: `<b>${esc(o.clientNume)}</b> · oferta trimisă acum ${d} zile, fără răspuns (${L.eur(L.totals(o).prestator)})` }); }
   });
+  { const fx = payFixes(); if (fx.length) out.push({ sev: 'warn', rank: 5, href: '#plati', html: `<b>${fx.length} plăți</b> cu conversie în EUR de corectat (facturi achitate în tranșe)` }); }
   S.clients.forEach((c) => { const s = clientStats(c); if (s.now > 0.5) out.push({ sev: 'warn', rank: 300 - Math.min(s.now / 100, 299), href: '#c-' + c.id, html: `<b>${esc(c.nume)}</b> · de încasat acum ${L.eur(s.now)} (fazele realizate)` }); else if (s.tracked && s.rest > 0.5) out.push({ sev: 'info', rank: 1000 - Math.min(s.rest / 100, 999), href: '#c-' + c.id, html: `<b>${esc(c.nume)}</b> · rest contract ${L.eur(s.rest)} din ${L.eur(s.tracked)}` }); });
   const ord = { bad: 0, warn: 1, info: 2 };
   return out.sort((a, b) => ord[a.sev] - ord[b.sev] || a.rank - b.rank);
