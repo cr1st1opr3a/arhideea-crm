@@ -1588,7 +1588,8 @@ function contractRows() {
   S.offers.forEach((o) => {
     if (!o.contract?.nr || o.anexa) return;
     const nrs = String(o.contract.nr).trim(); const m = nrs.match(/(\d+)/); const y = (nrs.match(/\/(\d{4})/) || [])[1] || (o.contract.data || o.data || '').slice(0, 4);
-    rows.push({ kind: 'c', firma: o.firma, nr: nrs, n: m ? +m[1] : null, an: y, data: o.contract.data || '', client: o.clientNume || S.clients.get(o.clientId)?.nume || '', titlu: o.contract.investitie || o.obiectiv || '', val: L.arhFinal(o), ist: !!o.contract.istoric, status: o.status, href: 'o-' + o.id, file: o.contract.fisier || '' });
+    const late = o.data && o.contract.data && (new Date(o.data) - new Date(o.contract.data)) / 864e5 > 30;
+    rows.push({ late, odata: o.data, kind: 'c', firma: o.firma, nr: nrs, n: m ? +m[1] : null, an: y, data: o.contract.data || '', client: o.clientNume || S.clients.get(o.clientId)?.nume || '', titlu: o.contract.investitie || o.obiectiv || '', val: L.arhFinal(o), ist: !!o.contract.istoric, status: o.status, href: 'o-' + o.id, file: o.contract.fisier || '' });
   });
   S.clients.forEach((c) => {
     if (!c.cadru?.nr) return; const anx = [...S.offers.values()].filter((o) => o.clientId === c.id && o.anexa);
@@ -1618,6 +1619,7 @@ function viewContracts() {
     });
   });
   const dups = list.filter((r) => r.n != null && cnt[key(r)] > 1);
+  const lates = all.filter((r) => r.late && !(S.settings?.lateOk || []).includes(r.href));
   const s = sett();
   $('#main').innerHTML = `<div class="ehead"><h2>Contracte</h2><span class="sub">${list.length} din ${all.length}</span></div>
   <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
@@ -1626,17 +1628,23 @@ function viewContracts() {
     <label class="btn small" style="cursor:pointer">Sincronizează cu registrul (.xlsx)<input type="file" id="ctSync" accept=".xlsx,.xls" style="display:none"></label>
     <span class="sub">Următorul număr: SRL <b>${s.nextContract.arhideea}</b> · BIA <b>${s.nextContract.bia}</b> (se schimbă din Setări)</span>
   </div>
+  ${lates.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="hd">Contracte legate posibil de oferta greșită <span class="sub">${lates.length}</span></div><div class="bd">
+    <div class="sub" style="margin-bottom:8px">Oferta e mai nouă decât contractul cu peste o lună – de obicei oferta vine înaintea contractului. Dacă oferta e pentru alt proiect, deschide-o → tab Contract → „Contractul e pentru alt proiect…”. Dacă e în regulă (ofertă refăcută pentru același proiect), apasă „E corect”.</div>
+    <div class="tablebox"><table class="list"><thead><tr><th>Contract</th><th>Client</th><th>Obiect contract</th><th>Data contract</th><th>Data ofertă</th><th></th></tr></thead><tbody>
+    ${lates.map((r) => `<tr><td class="num"><b>${esc(r.nr)}</b> <span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td>${esc(r.client)}</td><td>${esc(r.titlu)}</td><td class="num">${L.dataRo(r.data)}</td><td class="num">${L.dataRo(r.odata)}</td><td style="white-space:nowrap"><a class="btn small" href="#${r.href}">Deschide</a> <button class="btn small ghost" data-lateok="${r.href}">E corect</button></td></tr>`).join('')}
+    </tbody></table></div></div></div>` : ''}
   ${dups.length || gaps.length ? `<div class="card" style="margin-bottom:12px;border-color:var(--warn,#b7791f)"><div class="bd">
     ${dups.length ? `<div><b>Numere folosite de două ori:</b> ${[...new Set(dups.map((r) => (r.firma === 'arhideea' ? 'SRL ' : 'BIA ') + r.nr))].map(esc).join(', ')}</div>` : ''}
     ${gaps.length ? `<div ${dups.length ? 'style="margin-top:6px"' : ''}><b>Numere lipsă din șir</b> <span class="sub">(ultimele 40 de numere; pot fi contracte neînregistrate aici sau numere sărite)</span>: ${gaps.map(esc).join(' · ')}</div>` : ''}
   </div></div>` : ''}
   ${list.length ? `<div class="tablebox"><table class="list"><thead><tr><th>Nr.</th><th>Data</th><th>Firmă</th><th>Client</th><th>Titlu / obiect</th><th class="n">Valoare arh.</th><th>Status</th></tr></thead><tbody>
-  ${list.map((r) => `<tr class="click" data-href="${r.href}" style="${r.n != null && cnt[key(r)] > 1 ? 'background:rgba(180,35,24,.08)' : ''}"><td class="num" data-v="${r.n ?? 0}"><b>${esc(r.nr)}</b>${r.n != null && cnt[key(r)] > 1 ? ' <span class="pill" style="background:#f6d6d2;color:#8a1c12">dublură</span>' : ''}</td><td class="num">${esc(L.dataRo(r.data) || r.an || '—')}</td><td><span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(r.client)}</b></td><td>${esc(r.titlu)}${r.file ? `<div class="sub">${esc(r.file)}</div>` : ''}</td><td class="n" data-v="${r.val}">${r.val ? L.eur(r.val) : '—'}</td><td>${r.kind === 'cadru' ? '<span class="tag">cadru</span>' : pill(r.status)}${r.ist ? '<div class="sub">istoric</div>' : ''}</td></tr>`).join('')}
+  ${list.map((r) => `<tr class="click" data-href="${r.href}" style="${r.n != null && cnt[key(r)] > 1 ? 'background:rgba(180,35,24,.08)' : ''}"><td class="num" data-v="${r.n ?? 0}"><b>${esc(r.nr)}</b>${r.late && !(S.settings?.lateOk || []).includes(r.href) ? ' <span title="Oferta e mai nouă decât contractul – verifică dacă e oferta corectă">⚠︎</span>' : ''}${r.n != null && cnt[key(r)] > 1 ? ' <span class="pill" style="background:#f6d6d2;color:#8a1c12">dublură</span>' : ''}</td><td class="num">${esc(L.dataRo(r.data) || r.an || '—')}</td><td><span class="tag">${r.firma === 'arhideea' ? 'SRL' : 'BIA'}</span></td><td><b>${esc(r.client)}</b></td><td>${esc(r.titlu)}${r.file ? `<div class="sub">${esc(r.file)}</div>` : ''}</td><td class="n" data-v="${r.val}">${r.val ? L.eur(r.val) : '—'}</td><td>${r.kind === 'cadru' ? '<span class="tag">cadru</span>' : pill(r.status)}${r.ist ? '<div class="sub">istoric</div>' : ''}</td></tr>`).join('')}
   </tbody></table></div>` : '<div class="empty">Niciun contract pentru filtrul ales.</div>'}`;
   $$('[data-ctf]').forEach((b) => (b.onclick = () => { f.firma = b.dataset.ctf; viewContracts(); }));
   $('#ctAn').onchange = (e) => { f.an = e.target.value; viewContracts(); };
   $('#ctSync').onchange = async (e) => { const fl = e.target.files[0]; if (!fl) return; try { S.sync = planSync(readRegistryXlsx(await fl.arrayBuffer())); viewSync(); } catch (er) { toast('Nu am putut citi fișierul: ' + er.message, 5000); } };
   $$('tr[data-href]').forEach((r) => (r.onclick = () => { location.hash = r.dataset.href; }));
+  $$('[data-lateok]').forEach((b) => (b.onclick = () => { const ns = clean(S.settings || {}); ns.lateOk = [...new Set([...(ns.lateOk || []), b.dataset.lateok])]; S.settings = ns; write('settings', 'main', ns); viewContracts(); }));
 }
 
 /* ---------------- OFERTE: etichete pentru alegere + unire ---------------- */
