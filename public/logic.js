@@ -63,6 +63,9 @@
     if (t.arh === undefined) t.arh = t.prestator;
     return L.applyDisc(t, o);
   };
+  /* linie forfetară: sumă fixă sau pe ore (ore × tarif) */
+  L.forfCost = (r) => (r && r.mod === 'ore') ? n(r.ore) * n(r.tarif) : n(r && r.cost);
+  L.forfDesc = (r) => { const base = (r && r.desc) || ''; if (!r || r.mod !== 'ore') return base; const h = L.fmt(r.ore) + ' ore estimate × ' + L.fmt(r.tarif) + ' EUR/oră; se decontează după timpul efectiv lucrat'; return base ? base + ' (' + h + ')' : h; };
   L.totalsBrut = (o) => {
     const cota = n(o.cotaTva || 21);
     const fx = (o.moneda === 'RON' && n(o.curs)) ? 1 / n(o.curs) : 1;
@@ -73,7 +76,7 @@
       return { tip: 'ore', ore, prestator: v, colab: 0, total: v, totalTva: tv, prestatorTva: tv, inv: 0, mp: 0 };
     }
     if (o.tip === 'forfetar') {
-      const v = (o.forfetar || []).reduce((s, r) => s + n(r.cost), 0) * fx;
+      const v = (o.forfetar || []).reduce((s, r) => s + L.forfCost(r), 0) * fx;
       const tv = o.tva?.arh ? v * (1 + cota / 100) : v;
       return { tip: 'forfetar', prestator: v, colab: 0, total: v, totalTva: tv, prestatorTva: tv, inv: 0, mp: 0 };
     }
@@ -248,7 +251,7 @@
       totalGeneralTxt,
       ore: (o.ore || []).map((r, i) => ({ nr: i + 1, den: r.den, ore: L.fmt(r.ore), tarif: L.fmt(r.tarif), cost: L.eur(n(r.ore) * n(r.tarif)) })),
       oreTot: L.fmt(t.ore || 0), oreCostTot: L.eur(tb.total) + (t.disc ? ' (după discount: ' + L.eur(t.total) + ')' : ''),
-      forfetar: (o.forfetar || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: r.desc || '', cost: L.eur(r.cost), durata: r.durata || '' })),
+      forfetar: (o.forfetar || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: L.forfDesc(r), cost: L.eur(L.forfCost(r)), durata: r.durata || '' })),
       forfTot: L.eur(tb.total) + (t.disc ? ' (după discount: ' + L.eur(t.total) + ')' : ''),
       note, areEtape: etape.length > 0, etape,
       titluEtape: isMp ? 'Defalcare pe etape' : 'Esalonarea platilor',
@@ -317,7 +320,7 @@
     ] : (o.tip === 'ore' ? o.ore : o.forfetar).map((r) => r.den + ';');
     const livr = o.tip === 'ore'
       ? (o.ore || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: L.fmt(r.ore) + ' ore estimate × ' + L.fmt(r.tarif) + ' EUR/oră, decontare după timpul efectiv lucrat', costTxt: L.fmt(n(r.ore) * n(r.tarif)), obs: 'estimat' }))
-      : (o.forfetar || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: r.desc || '', costTxt: L.fmt(r.cost), obs: r.durata || '' }));
+      : (o.forfetar || []).map((r, i) => ({ nr: i + 1, den: r.den, desc: L.forfDesc(r), costTxt: L.fmt(L.forfCost(r)), obs: r.durata || '' }));
     const z1 = (zonele || [])[0];
     const costTxt = isMp && t.inv ? `Cost estimat al construcției (finalizată, fără mobilier, racorduri, împrejmuire): cca ${L.fmt(z1 && z1.cost)} EUR/mp fără TVA, respectiv cca ${L.fmt(t.inv)} EUR fără TVA pentru întreaga investiție.` : '';
     const ampl = [c.amplasament || [o.localitate, o.adresa].filter(Boolean).join(', ') || '______________', c.cf ? 'CF nr. ' + c.cf : '', c.nrCad ? 'nr. cad. ' + c.nrCad : ''].filter(Boolean).join(', ');
@@ -363,8 +366,8 @@
     const a = o.anexa || {}; const cd = (c && c.cadru) || {}; const mon = o.moneda === 'RON' ? 'RON' : 'EUR';
     let linii, oreTot = '', tot = 0;
     if (o.tip === 'forfetar') {
-      linii = (o.forfetar || []).map((r, i) => ({ faza: String(i + 1), den: r.den + (r.desc ? ' – ' + r.desc : ''), ore: '', tarif: '', total: L.bani(r.cost, mon) }));
-      tot = (o.forfetar || []).reduce((s, r) => s + n(r.cost), 0);
+      linii = (o.forfetar || []).map((r, i) => ({ faza: String(i + 1), den: r.den + (r.desc ? ' – ' + r.desc : ''), ore: r.mod === 'ore' ? L.fmt(r.ore) : '', tarif: r.mod === 'ore' ? L.bani(r.tarif, mon) : '', total: L.bani(L.forfCost(r), mon) }));
+      tot = (o.forfetar || []).reduce((s, r) => s + L.forfCost(r), 0);
     } else {
       linii = (o.ore || []).map((r, i) => ({ faza: r.faza || String(i + 1), den: r.den, ore: L.fmt(r.ore), tarif: L.bani(r.tarif, mon), total: L.bani(n(r.ore) * n(r.tarif), mon) }));
       tot = (o.ore || []).reduce((s, r) => s + n(r.ore) * n(r.tarif), 0);
